@@ -6,14 +6,18 @@ gdb = GraphDatabase("http://localhost:7474/db/data/")
 
 def buildRelationships(inputNode, items, createAs, relationship):
     for item in items:
-        q = 'match (n {name: "' + item + '"}) return n'
+        if type(item) is int:
+            q = 'match (n {name: ' + str(item) + '}) return n'
+        else:
+            q = 'match (n {name: "' + item + '"}) return n'
+
         nodes = gdb.query(q, returns=(client.Node))
         if len(nodes) > 0 and len(nodes[0]) > 0:
             node = nodes[0][0]
         else:
             node = gdb.node(name=item)
             node.labels.add(createAs)
-            print 'creating new ' + createAs + ': ' + item
+            print 'creating new ' + createAs + ': ' + str(item)
         inputNode.relationships.create(relationship, node)
 
 
@@ -23,14 +27,19 @@ with open('books.csv', 'rb') as f:
         title = row["'TITLE'"]
         authorName = row["'AUTHOR (last, first)'"]
         isbn = row["'ISBNs'"]
-        year = row["'DATE'"]
+        try:
+            year = int(row["'DATE'"])
+        except:
+            year = 0
         tags = row["'TAGS'"]
 
         book = gdb.node(title=title, isbn=isbn, year=year)
         book.labels.add('Book')
 
-        if tags.split(','):
-            buildRelationships(book, tags.split(','), 'Tag', 'tag')
-        buildRelationships(book, [authorName], 'Author', 'author')
+        if tags and tags.split(','):
+            buildRelationships(book, tags.split(','), 'Tag', 'tagged as')
+        buildRelationships(book, [authorName], 'Author', 'written by')
+        buildRelationships(book, [year], 'Year', 'published in')
+
 
 
