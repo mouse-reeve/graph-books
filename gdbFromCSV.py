@@ -33,7 +33,7 @@ with open('books.csv', 'rb') as f:
             year = 0
         tags = row["'TAGS'"]
 
-        book = gdb.node(title=title, isbn=isbn, year=year)
+        book = gdb.node(name=title, isbn=isbn, year=year)
         book.labels.add('Book')
 
         if tags and tags.split(','):

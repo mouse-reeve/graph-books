@@ -8,6 +8,10 @@ angular.module('app', [
             controller: 'NodeController',
             templateUrl: 'static/partials/start.html'
         })
+        .when('/:id', {
+            controller: 'NodeController',
+            templateUrl: 'static/partials/start.html'
+        })
         .otherwise({
             redirectTo: '/'
         });

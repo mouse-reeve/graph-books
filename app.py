@@ -13,14 +13,13 @@ graph = GraphController()
 def index():
     return make_response(open('index.html').read())
 
-@app.route('/api/node/<nodeId>')
+@app.route('/api/node/<nodeId>', methods = ['GET'])
 def getNode(nodeId):
-    print nodeId
     data = graph.getNodeById(nodeId);
     if not data:
         return json.dumps({'success': False})
 
-    return json.dumps({'success': True, 'data': data})
+    return json.dumps(data)
 
 if __name__ == '__main__':
     app.debug = True
