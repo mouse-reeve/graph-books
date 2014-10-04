@@ -6,6 +6,6 @@ function NodeController ($scope, Graph, $routeParams) {
     });
 
     $scope.pickPronoun = function () {
-        return $scope.node.labels[0] === 'person' ? 'their' : 'it\'s';
+        return $scope.node.labels[0] === 'person' ? 'their' : 'its';
     };
 }

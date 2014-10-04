@@ -8,6 +8,13 @@ h1 {
     font-size: 3em;
 }
 
-ul {
-    margin-bottom: 1em;
+h2 {
+    margin: 1em 0;
+}
+
+.comma-separated::after {
+    content: ', ';
+}
+.comma-separated:last-child::after {
+    content: '';
 }

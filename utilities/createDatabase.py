@@ -33,7 +33,7 @@ with open(fileName, 'rb') as f:
         if 'description' in row:
             book.set('description', row['description'])
         if 'pages' in row:
-            book.set('page count', row['pages'])
+            book.set('pageCount', row['pages'])
 
         # relationships
         if 'author_details' in row:
@@ -41,7 +41,13 @@ with open(fileName, 'rb') as f:
             # books with two distinct and legitimate authors (Good Omens), but
             # keeps out a ton of crap data
             author = row['author_details'].split('|')[0]
-            buildRelationships(book, [author], 'person', 'written by')
+            firstName = author.split(', ')[1]
+            lastName = author.split(', ')[0]
+            params = {'type': 'author',
+                      'anonymize': 0,
+                      'firstName': firstName,
+                      'lastName': lastName}
+            buildRelationships(book, [author], 'person', 'written by', params)
         if 'publisher' in row and row['publisher']:
             buildRelationships(book, [row['publisher']], 'company', 'published by')
         if 'date_published' in row:

@@ -22,6 +22,7 @@ class GraphController:
 
     def buildNodeJson(self, node):
         data = {
+            'id': node.id,
             'properties': node.properties,
             'labels': [],
             'relationships': {}
