@@ -24,7 +24,6 @@ with open(fileName, 'rb') as f:
 
         book = gdb.node(name=title, isbn=isbn)
         book.labels.add('book')
-        print book.name
 
         # additional info
         if 'format' in row:
@@ -33,6 +32,8 @@ with open(fileName, 'rb') as f:
             book.set('price', row['list_price'])
         if 'description' in row:
             book.set('description', row['description'])
+        if 'pages' in row:
+            book.set('pages', row['pages'])
 
         # relationships
         if 'author_details' in row:
@@ -51,11 +52,4 @@ with open(fileName, 'rb') as f:
             series = row['series_details'].split('|')[0]
             series = series.split('(')[0].strip()
             buildRelationships(book, [series], 'series', 'part of the series')
-        if 'pages' in row:
-            buildRelationships(book, [row['pages']], 'number', 'had a page count of')
-
-
-
-        # add new relationships
-
 

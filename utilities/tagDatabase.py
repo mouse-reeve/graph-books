@@ -7,20 +7,35 @@ gdb = GraphDatabase("http://localhost:7474/db/data/")
 
 fileName = 'libraryThing.csv'
 
+attempts = 0
+success = 0
+
 with open(fileName, 'rb') as f:
     reader = csv.DictReader(f)
     for row in reader:
+        attempts += 1
         isbn = row["'ISBNs'"]
         # this isn't great, but it works
         isbn = isbn[1:len(isbn)-1]
         if not isbn:
             continue
 
-        tags = row["'TAGS'"]
-
         book = findByISBN(isbn)
+        if not book:
+            book = findByTitle(row["'TITLE'"])
 
-        if book and tags and tags.split(','):
+        if not book:
+            continue
+
+        tags = row["'TAGS'"]
+        if tags and tags.split(','):
+            success += 1
             buildRelationships(book, tags.split(','), 'tag', 'tagged as')
+        else:
+            print 'no tags - failed to tag ' + row["'TITLE'"]
+
+print success
+print attempts
+print float(success)/float(attempts)*100
 
 

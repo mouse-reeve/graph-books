@@ -1,9 +1,9 @@
-<h2>{{node.properties.name}}</h2>
-<p>in the beginning there was...</p>
+<p>in the beginning there was a {{node.labels[0]}}</p>
 
-<p>a {{node.labels[0]}}</p>
-<p ng-show="value" ng-repeat="(key, value) in node.properties">
-    it's {{key}} is {{value}}
+<h2>{{node.properties.name}}</h2>
+
+<p ng-show="value && key !== 'description' && key !== 'name'" ng-repeat="(key, value) in node.properties">
+    {{pickPronoun()}} {{key}} is {{value}}
 </p>
 
 <ul ng-repeat="(type, rel) in node.relationships">
@@ -13,3 +13,4 @@
         <a href="/#/{{item.end.id}}">{{item.end.properties.name}}</a>
     </li>
 </ul>
+

@@ -7,3 +7,7 @@ h1 {
     text-transform: uppercase;
     font-size: 3em;
 }
+
+ul {
+    margin-bottom: 1em;
+}
