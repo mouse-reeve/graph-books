@@ -22,10 +22,10 @@ def buildRelationships(inputNode, items, createAs, relationship):
         inputNode.relationships.create(relationship, node)
 
 def findByISBN(isbn):
-    q = 'MATCH (n {isbn: ' + str(isbn) + '}) RETURN n'
+    q = 'MATCH (n {isbn: "' + str(isbn) + '"}) RETURN n'
 
     nodes = gdb.query(q, returns=(client.Node))
     if len(nodes) > 0 and len(nodes[0]) > 0:
         return nodes[0][0]
     else:
-        return false
+        return False
