@@ -3,3 +3,5 @@ include/
 lib/
 *.swp
 .Python
+*.pyc
+.DS_Store
