@@ -2,6 +2,13 @@ function NodeController ($scope, Graph, $routeParams) {
     var nodeId = $routeParams.id || 0;
     var label = $routeParams.label || '';
 
+    $scope.searchName;
+    $scope.builder = {
+        startId: nodeId,
+        relationship: '',
+        endId: null
+    }
+
     Graph.getNode(nodeId).then(function (node) {
         $scope.node = node;
     });
@@ -15,7 +22,14 @@ function NodeController ($scope, Graph, $routeParams) {
         }
     };
 
-    $scope.pickPronoun = function () {
-        return $scope.node.label === 'person' ? 'their' : 'its';
+    $scope.lookup = function () {
+        Graph.lookup($scope.searchName).then(function (results) {
+            $scope.searchResults = results;
+        });
+    };
+
+    $scope.linkNodes = function () {
+        Graph.linkNodes($scope.builder.startId,
+                $scope.builder.relationship, $scope.builder.endId);
     };
 }

@@ -16,16 +16,51 @@ def index(path):
 
 @app.route('/api/node/<nodeId>', methods = ['GET'])
 def getNode(nodeId):
-    data = graph.getNodeById(nodeId)
-    if not data:
-        return json.dumps({'success': False})
+    node = graph.getNodeById(nodeId)
 
-    return json.dumps(data)
+    return json.dumps(buildNodeJson(node))
 
 @app.route('/api/name-lookup/<name>', methods = ['GET'])
-def findNodeByName(name):
-    data = graph.getNodeByName(name)
+def findNodesByName(name):
+    nodes = graph.getNodesByName(name)
+    data = []
+    for node in nodes:
+        data.append(buildNodeJson(node[0]))
     return json.dumps(data)
+
+@app.route('/api/node/relationships', methods = ['POST'])
+def createRelationship():
+    data = request.get_json()
+    success = graph.createRelationship(data['start'], data['relationship'], data['end'])
+    return json.dumps({'succcess': success})
+
+def buildNodeJson(node):
+    data = {
+        'id': node.id,
+        'properties': node.properties,
+        'label': node.labels._labels.pop()._label,
+        'relationships': {}
+    }
+
+    for relationship in node.relationships:
+        if not relationship.type in data['relationships']:
+            data['relationships'][relationship.type] = []
+        data['relationships'][relationship.type].append({
+            'properties': relationship.properties,
+            'end': {
+                'properties': relationship.end.properties,
+                'label': relationship.end.labels._labels.pop()._label,
+                'id': relationship.end.id
+            },
+            'start': {
+                'properties': relationship.start.properties,
+                'label': relationship.start.labels._labels.pop()._label,
+                'id': relationship.start.id
+            }
+        })
+
+    return data
+
 
 if __name__ == '__main__':
     app.debug = True

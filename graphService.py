@@ -14,45 +14,23 @@ class GraphService:
 
         q = 'MATCH (node) WHERE id(node) = %d RETURN node' % nodeId
         node = self.db.query(q, returns=(client.Node))
-        if len(node[0]) < 1:
+        if len(node) != 1 or len(node[0]) < 1:
             return False
 
-        node = node[0][0]
-        return self.buildNodeJson(node)
+        return node[0][0]
 
-    def getNodeByName(self, name):
-        q = 'MATCH (node {name: "%s"}) RETURN node' % name
-        node = self.db.query(q, returns=(client.Node))
-        if len(node[0]) < 1:
+    def getNodesByName(self, name):
+        q = 'MATCH (node) WHERE node.name =~ "(?i).*%s.*" RETURN node' % name
+        nodes = self.db.query(q, returns=(client.Node))
+        if len(nodes) < 1 or len(nodes[0]) < 1:
             return False
 
-        node = node[0][0]
-        return self.buildNodeJson(node)
+        return nodes
 
-    def buildNodeJson(self, node):
-        data = {
-            'id': node.id,
-            'properties': node.properties,
-            'label': node.labels._labels.pop()._label,
-            'relationships': {}
-        }
+    def createRelationship(self, startId, relationship, endId):
+        start = self.getNodeById(startId)
+        end = self.getNodeById(endId)
 
-        for relationship in node.relationships:
-            if not relationship.type in data['relationships']:
-                data['relationships'][relationship.type] = []
-            data['relationships'][relationship.type].append({
-                'properties': relationship.properties,
-                'end': {
-                    'properties': relationship.end.properties,
-                    'label': relationship.end.labels._labels.pop()._label,
-                    'id': relationship.end.id
-                },
-                'start': {
-                    'properties': relationship.start.properties,
-                    'label': relationship.start.labels._labels.pop()._label,
-                    'id': relationship.start.id
-                }
-            })
-
-        return data
+        start.relationships.create(relationship, end)
+        return True
 

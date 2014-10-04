@@ -1,4 +1,20 @@
 <div ng-include="getTemplate()"></div>
 <div ng-include="'static/partials/relationships.html'"></div>
 
+<div>
+    <h3>new relationship?</h3>
+    <form name="finder">
+        Look up node to link: <input type="text" ng-model="searchName" placeholder="node name">
+        <button ng-click="lookup()">look up</button>
+    </form>
+</div>
+
+<form name="linker" ng-if="searchResults">
+    {{node.properties.name}} is <input type="text" ng-model="builder.relationship" placeholder="related to">
+    <select ng-model="builder.endId">
+        <option ng-repeat="item in searchResults" ng-value="item.id">{{item.properties.name}} ({{item.label}})<option>
+    </select>
+    <button ng-click="linkNodes()">create relationship</button>
+</form>
+
 
