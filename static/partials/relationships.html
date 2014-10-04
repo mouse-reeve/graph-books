@@ -1,0 +1,16 @@
+<p ng-repeat="(type, rel) in node.relationships" ng-if="rel[0].start.id == node.id">
+    ... {{type}}
+    <span class="comma-separated">
+        <span ng-repeat="item in rel"><a href="/{{item.end.label}}/{{item.end.id}}">{{item.end.properties.name}}</a></span>
+    </span>
+</p>
+
+<div ng-repeat="(type, rel) in node.relationships" ng-if="rel[0].end.id == node.id">
+    <span class="comma-separated">
+        <span ng-repeat="item in rel"><a href="/{{item.start.label}}/{{item.start.id}}">{{item.start.properties.name}}</a></span>
+    </span>
+    {{rel.length > 1 ? 'were' : 'was'}} {{type}}
+    <strong ng-if="node.properties.firstName || node.properties.lastName">{{node.properties.firstName}} {{node.properties.lastName}}</strong>
+    <strong ng-if="!node.properties.firstName && !node.properties.lastName">{{node.properties.name}}</strong>
+</div>
+

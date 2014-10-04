@@ -8,9 +8,9 @@ angular.module('app', [
             controller: 'NodeController',
             templateUrl: 'static/partials/start.html'
         })
-        .when('/:id', {
+        .when('/:label/:id', {
             controller: 'NodeController',
-            templateUrl: 'static/partials/start.html'
+            templateUrl: 'static/partials/node.html'
         })
         .otherwise({
             redirectTo: '/'

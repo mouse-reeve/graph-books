@@ -1,0 +1,10 @@
+<h2>{{node.properties.name}}</h2>
+
+<div class="book-info">
+    <img src="http://covers.openlibrary.org/b/isbn/{{node.properties.isbn}}.jpg">
+    <p>
+        <span ng-if="node.properties.format">{{node.properties.format}},</span>
+        <span ng-if="node.properties.pageCount">{{node.properties.pageCount}} pages</span>
+    </p>
+</div>
+

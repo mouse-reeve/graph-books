@@ -24,12 +24,9 @@ class GraphController:
         data = {
             'id': node.id,
             'properties': node.properties,
-            'labels': [],
+            'label': node.labels._labels.pop()._label,
             'relationships': {}
         }
-
-        for label in node.labels:
-            data['labels'].append(label._label)
 
         for relationship in node.relationships:
             if not relationship.type in data['relationships']:
@@ -38,10 +35,12 @@ class GraphController:
                 'properties': relationship.properties,
                 'end': {
                     'properties': relationship.end.properties,
+                    'label': relationship.end.labels._labels.pop()._label,
                     'id': relationship.end.id
                 },
                 'start': {
                     'properties': relationship.start.properties,
+                    'label': relationship.start.labels._labels.pop()._label,
                     'id': relationship.start.id
                 }
             })

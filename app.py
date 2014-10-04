@@ -10,7 +10,7 @@ app = Flask(__name__)
 graph = GraphController()
 
 @app.route('/', defaults={'path': None})
-@app.route('/<path>')
+@app.route('/<path:path>')
 def index(path):
     return make_response(open('index.html').read())
 
