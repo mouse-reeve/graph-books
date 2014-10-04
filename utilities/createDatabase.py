@@ -33,7 +33,7 @@ with open(fileName, 'rb') as f:
         if 'description' in row:
             book.set('description', row['description'])
         if 'pages' in row:
-            book.set('pages', row['pages'])
+            book.set('page count', row['pages'])
 
         # relationships
         if 'author_details' in row:
