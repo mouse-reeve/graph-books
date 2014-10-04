@@ -1,48 +1,61 @@
 import csv
 import neo4jrestclient.client as client
 from neo4jrestclient.client import GraphDatabase
+from dbTools import *
 
 gdb = GraphDatabase("http://localhost:7474/db/data/")
 
-def buildRelationships(inputNode, items, createAs, relationship):
-    for item in items:
-        if type(item) is int:
-            q = 'match (n {name: ' + str(item) + '}) return n'
-        else:
-            q = 'match (n {name: "' + item + '"}) return n'
-
-        nodes = gdb.query(q, returns=(client.Node))
-        if len(nodes) > 0 and len(nodes[0]) > 0:
-            node = nodes[0][0]
-        else:
-            node = gdb.node(name=item)
-            node.labels.add(createAs)
-            print 'creating new ' + createAs + ': ' + str(item)
-        inputNode.relationships.create(relationship, node)
-
-
-fileName = 'books.csv'
-if raw_input('use books.csv? ') == 'no':
-    fileName = raw_input('Enter filename: ')
+fileName = 'library.csv'
 
 with open(fileName, 'rb') as f:
     reader = csv.DictReader(f)
     for row in reader:
-        title = row["'TITLE'"]
-        authorName = row["'AUTHOR (last, first)'"]
-        isbn = row["'ISBNs'"]
-        try:
-            year = int(row["'DATE'"])
-        except:
-            year = 0
-        tags = row["'TAGS'"]
 
-        book = gdb.node(name=title, isbn=isbn, year=year)
-        book.labels.add('Book')
+        # mandatory fields
+        if 'title' in row:
+            title = row['title']
+        else:
+            continue
 
-        if tags and tags.split(','):
-            buildRelationships(book, tags.split(','), 'Tag', 'tagged as')
-        buildRelationships(book, [authorName], 'Person', 'written by')
-        buildRelationships(book, [year], 'Year', 'published in')
+        if 'isbn' in row:
+            isbn = row['isbn']
+        else:
+            continue
+
+        book = gdb.node(name=title, isbn=isbn)
+        book.labels.add('book')
+        print book.name
+
+        # additional info
+        if 'format' in row:
+            book.set('format', row['format'])
+        if 'list_price' in row:
+            book.set('price', row['list_price'])
+        if 'description' in row:
+            book.set('description', row['description'])
+
+        # relationships
+        if 'author_details' in row:
+            # assumes the first author is canonical. will cause problems for
+            # books with two distinct and legitimate authors (Good Omens), but
+            # keeps out a ton of crap data
+            author = row['author_details'].split('|')[0]
+            buildRelationships(book, [author], 'person', 'written by')
+        if 'publisher' in row:
+            buildRelationships(book, [row['publisher']], 'company', 'published by')
+        if 'date_published' in row:
+            # again, assuming a lot about good data format in my csv. oh well?
+            year = row['date_published'][0:4]
+            buildRelationships(book, [year], 'year', 'published in')
+        if 'series_details' in row:
+            series = row['series_details'].split('|')[0]
+            series = series.split('(')[0].strip()
+            buildRelationships(book, [series], 'series', 'part of the series')
+        if 'pages' in row:
+            buildRelationships(book, [row['pages']], 'number', 'had a page count of')
+
+
+
+        # add new relationships
 
 
