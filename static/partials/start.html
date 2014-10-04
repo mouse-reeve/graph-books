@@ -2,19 +2,4 @@
 
 <h2>{{node.properties.name}}</h2>
 
-<p ng-show="value && key !== 'description' && key !== 'name'" ng-repeat="(key, value) in node.properties">
-    {{pickPronoun()}} {{key}} is {{value}}
-</p>
-
-<p ng-repeat="(type, rel) in node.relationships" ng-if="rel[0].start.id == node.id">
-    <strong>{{rel[0].start.properties.name}}</strong>
-    was {{type}}
-    <span class="comma-separated" ng-repeat="item in rel"><a href="/{{item.end.label}}/{{item.end.id}}">{{item.end.properties.name}}</a></span>
-</p>
-
-<div ng-repeat="(type, rel) in node.relationships" ng-if="rel[0].end.id == node.id">
-    <p class="comma-separated" ng-repeat="item in rel"><a href="/{{item.start.label}}/{{item.start.id}}">{{item.start.properties.name}}</a></p>
-    {{rel.length > 1 ? 'were' : 'was'}} {{type}}
-    <strong>{{rel[0].end.properties.name}}</strong>
-</div>
-
+<ng-include src="'static/partials/relationships.html'"><ng-include>

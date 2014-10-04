@@ -1,7 +1,7 @@
 import neo4jrestclient.client as client
 from neo4jrestclient.client import GraphDatabase
 
-class GraphController:
+class GraphService:
     def __init__(self):
         print 'initialize'
         self.db = GraphDatabase("http://localhost:7474/db/data/")
@@ -12,9 +12,18 @@ class GraphController:
         except:
             return False
 
-        q = 'MATCH (node) WHERE id(node) = %d return node' % nodeId
+        q = 'MATCH (node) WHERE id(node) = %d RETURN node' % nodeId
         node = self.db.query(q, returns=(client.Node))
-        if len(node) != 1 or len(node[0]) < 1:
+        if len(node[0]) < 1:
+            return False
+
+        node = node[0][0]
+        return self.buildNodeJson(node)
+
+    def getNodeByName(self, name):
+        q = 'MATCH (node {name: "%s"}) RETURN node' % name
+        node = self.db.query(q, returns=(client.Node))
+        if len(node[0]) < 1:
             return False
 
         node = node[0][0]
@@ -46,5 +55,4 @@ class GraphController:
             })
 
         return data
-
 
