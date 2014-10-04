@@ -42,7 +42,7 @@ with open(fileName, 'rb') as f:
             # keeps out a ton of crap data
             author = row['author_details'].split('|')[0]
             buildRelationships(book, [author], 'person', 'written by')
-        if 'publisher' in row:
+        if 'publisher' in row and row['publisher']:
             buildRelationships(book, [row['publisher']], 'company', 'published by')
         if 'date_published' in row:
             # again, assuming a lot about good data format in my csv. oh well?
@@ -53,5 +53,6 @@ with open(fileName, 'rb') as f:
         if 'series_details' in row:
             series = row['series_details'].split('|')[0]
             series = series.split('(')[0].strip()
-            buildRelationships(book, [series], 'series', 'part of the series')
+            if series:
+                buildRelationships(book, [series], 'series', 'part of the series')
 
