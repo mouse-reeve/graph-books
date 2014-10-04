@@ -34,8 +34,7 @@ with open(fileName, 'rb') as f:
         else:
             print 'no tags - failed to tag ' + row["'TITLE'"]
 
-print success
-print attempts
-print float(success)/float(attempts)*100
-
+print 'successful updates: %d' % success
+print 'total attempts: %d' % attempts
+print 'Success rate: ' + str(float(success)/float(attempts)*100) + '%'
 

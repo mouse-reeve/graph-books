@@ -28,27 +28,50 @@ def findByISBN(isbn):
     if len(nodes) > 0 and len(nodes[0]) > 0:
         return nodes[0][0]
     else:
-        return False
+        variant = isbn[0:-1]
+        q = 'MATCH (b:book) WHERE (b.isbn =~ ".*' + variant +'.*") RETURN b'
+        nodes = gdb.query(q, returns=(client.Node))
+        if len(nodes) > 0 and len(nodes[0]) > 0:
+            return nodes[0][0]
+    return False
 
 def findByTitle(title):
-    if title.startswith('The '):
-        title = title[4:] + ', ' + title[0:3]
-    if title.startswith('A '):
-        title = title[2:] + ', ' + title[0:1]
-
-    title = title.split('(')[0]
-
     title = title.strip()
+    title = title.replace('&#039;', '\'')
+    variants = [title]
 
-    try:
-        q = 'START book=node(*) WHERE (book.name =~ "(?i)' + title + '") RETURN book'
-        nodes = gdb.query(q, returns=(client.Node))
-    except:
-        print 'query on title failed'
-        return False
+    alternates = {
+            '&': 'and',
+            ' and ': ' & ',
+            'Vol.': 'Volume',
+            'Volume': 'Vol.'
+            }
 
-    if len(nodes) > 0:
-        return nodes[0][0]
-    else:
-        print title
-        return False
+    for key, value in alternates.iteritems():
+        variants.append(title.replace(key, value))
+
+    extras = ['(', ':', '.', ';', ',']
+    for delimiter in extras:
+        cleaned = title.split(delimiter)[0].strip()
+        if not cleaned in variants:
+            variants.append(cleaned)
+
+    starters = ['The ', 'A ', 'An ']
+    for variant in variants:
+        for word in starters:
+            if variant.startswith(word):
+                variants.append(variant[len(word):] + ', ' + variant[0:len(word)-1])
+                variants.append(variant[len(word):])
+
+    for variant in variants:
+        try:
+            q = 'MATCH (b:book) WHERE (b.name =~ "(?i)' + variant + '.*") RETURN b'
+            nodes = gdb.query(q, returns=(client.Node))
+        except:
+            print 'UNEXPECTED ERROR: query on title failed'
+            return False
+
+        if len(nodes) > 0:
+            return nodes[0][0]
+    print variants
+
