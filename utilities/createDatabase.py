@@ -54,8 +54,7 @@ with open(fileName, 'rb') as f:
             # again, assuming a lot about good data format in my csv. oh well?
             year = row['date_published'][0:4]
             if year:
-                year = int(year)
-                buildRelationships(book, [year], 'year', 'published in')
+                buildRelationships(book, [year], 'year', 'published in', {'year': int(year)})
         if 'series_details' in row:
             series = row['series_details'].split('|')[0]
             series = series.split('(')[0].strip()
