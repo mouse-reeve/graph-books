@@ -1,8 +1,9 @@
+<h2>{{node.properties.name}}</h2>
 <p>in the beginning there was...</p>
 
 <p>a {{node.labels[0]}}</p>
 <p ng-show="value" ng-repeat="(key, value) in node.properties">
-    the {{key}} is {{value}}
+    it's {{key}} is {{value}}
 </p>
 
 <ul ng-repeat="(type, rel) in node.relationships">
