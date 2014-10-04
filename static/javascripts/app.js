@@ -2,7 +2,7 @@ angular.module('app', [
         'graphFactory',
         'ngRoute'])
 
-.config(function ($routeProvider) {
+.config(function ($routeProvider, $locationProvider) {
     $routeProvider
         .when('/', {
             controller: 'NodeController',
@@ -15,6 +15,8 @@ angular.module('app', [
         .otherwise({
             redirectTo: '/'
         });
+
+    $locationProvider.html5Mode(true);
 })
 
 .run(function () {
