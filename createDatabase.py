@@ -21,7 +21,11 @@ def buildRelationships(inputNode, items, createAs, relationship):
         inputNode.relationships.create(relationship, node)
 
 
-with open('books.csv', 'rb') as f:
+fileName = 'books.csv'
+if raw_input('use books.csv? ') == 'no':
+    fileName = raw_input('Enter filename: ')
+
+with open(fileName, 'rb') as f:
     reader = csv.DictReader(f)
     for row in reader:
         title = row["'TITLE'"]
@@ -38,8 +42,7 @@ with open('books.csv', 'rb') as f:
 
         if tags and tags.split(','):
             buildRelationships(book, tags.split(','), 'Tag', 'tagged as')
-        buildRelationships(book, [authorName], 'Author', 'written by')
+        buildRelationships(book, [authorName], 'Person', 'written by')
         buildRelationships(book, [year], 'Year', 'published in')
-
 
 
