@@ -1,4 +1,4 @@
-function NodeController ($scope, Graph, $routeParams) {
+function NodeController ($location, $routeParams, $scope, Graph) {
     var nodeId = $routeParams.id || null;
     var label = $routeParams.label || '';
 
@@ -13,6 +13,9 @@ function NodeController ($scope, Graph, $routeParams) {
 
     if (!!nodeId) {
         Graph.getNode(nodeId).then(function (node) {
+            if (label !== node.label) {
+                $location.path('/'+node.label+'/'+nodeId);
+            }
             $scope.node = node;
         });
     }
