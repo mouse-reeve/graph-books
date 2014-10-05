@@ -32,7 +32,8 @@ def findNodesByName(name):
 def createRelationship():
     data = request.get_json()
     success = graph.createRelationship(data['start'], data['relationship'], data['end'])
-    return json.dumps({'succcess': success})
+    # this is not RESTful and I do in fact feel bad.
+    return getNode(data['start'])
 
 def buildNodeJson(node):
     data = {

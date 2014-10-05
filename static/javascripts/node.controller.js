@@ -1,17 +1,21 @@
 function NodeController ($scope, Graph, $routeParams) {
-    var nodeId = $routeParams.id || 0;
+    var nodeId = $routeParams.id || null;
     var label = $routeParams.label || '';
 
     $scope.searchName;
-    $scope.builder = {
+    var builderBlank = {
         startId: nodeId,
         relationship: '',
         endId: null
     }
 
-    Graph.getNode(nodeId).then(function (node) {
-        $scope.node = node;
-    });
+    $scope.builder = angular.copy(builderBlank);
+
+    if (!!nodeId) {
+        Graph.getNode(nodeId).then(function (node) {
+            $scope.node = node;
+        });
+    }
 
     $scope.getTemplate = function () {
         var knownLabels = ['book', 'person', 'year'];
@@ -30,6 +34,12 @@ function NodeController ($scope, Graph, $routeParams) {
 
     $scope.linkNodes = function () {
         Graph.linkNodes($scope.builder.startId,
-                $scope.builder.relationship, $scope.builder.endId);
+                $scope.builder.relationship,
+                $scope.builder.endId).then(function (node) {
+            $scope.node = node;
+            $scope.searchName = '';
+            $scope.searchResults = null;
+            $scope.builder = angular.copy(builderBlank);
+        });
     };
 }
