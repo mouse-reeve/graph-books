@@ -52,17 +52,17 @@ with open(fileName, 'rb') as f:
                       'anonymize': 0,
                       'firstName': firstName,
                       'lastName': lastName}
-            buildRelationships(book, [author], 'person', 'written by', params)
+            buildRelationship(book, author, 'person', 'written by', params)
         if 'publisher' in row and row['publisher']:
-            buildRelationships(book, [row['publisher']], 'company', 'published by')
+            buildRelationship(book, row['publisher'], 'company', 'published by')
         if 'date_published' in row:
             # again, assuming a lot about good data format in my csv. oh well?
             year = row['date_published'][0:4]
             if year:
-                buildRelationships(book, [year], 'year', 'published in', {'year': int(year)})
+                buildRelationship(book, year, 'year', 'published in', {'year': int(year)})
         if 'series_details' in row:
             series = row['series_details'].split('|')[0]
             series = series.split('(')[0].strip()
             if series:
-                buildRelationships(book, [series], 'series', 'part of the series')
+                buildRelationship(book, series, 'series', 'part of the series')
 

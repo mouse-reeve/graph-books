@@ -4,23 +4,27 @@ from neo4jrestclient.client import GraphDatabase
 
 gdb = GraphDatabase("http://localhost:7474/db/data/")
 
-def buildRelationships(inputNode, items, label, relationship, params={}):
-    for item in items:
-        if type(item) is int:
-            q = 'MATCH (n:%s {name: %d}) RETURN n' % (label, item)
-        else:
-            q = 'MATCH (n:%s {name: "%s"}) RETURN n' % (label, item)
+def buildRelationship(inputNode, item, label, relationship, params={}):
+    if type(item) is int:
+        q = 'MATCH (n:%s {name: %d}) RETURN n' % (label, item)
+    else:
+        q = 'MATCH (n:%s {name: "%s"}) RETURN n' % (label, item)
 
-        nodes = gdb.query(q, returns=(client.Node))
-        if len(nodes) > 0 and len(nodes[0]) > 0:
-            node = nodes[0][0]
-        else:
-            node = gdb.node(name=item)
-            node.labels.add(label)
-            for key, value in params.iteritems():
-                node.set(key, value)
-            print 'creating new ' + label + ': ' + str(item)
-        inputNode.relationships.create(relationship, node)
+    nodes = gdb.query(q, returns=(client.Node))
+    if len(nodes) > 0 and len(nodes[0]) > 0:
+        node = nodes[0][0]
+    else:
+        node = gdb.node(name=item)
+        node.labels.add(label)
+        for key, value in params.iteritems():
+            node.set(key, value)
+        print 'creating new ' + label + ': ' + str(item)
+
+    relationships = inputNode.relationships.all()
+    for rel in relationships:
+        if node.id == rel.end.id:
+            return
+    inputNode.relationships.create(relationship, node)
 
 def findByISBN(isbn):
     q = 'MATCH (n {isbn: "' + str(isbn) + '"}) RETURN n'

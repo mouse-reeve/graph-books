@@ -30,7 +30,8 @@ with open(fileName, 'rb') as f:
         tags = row["'TAGS'"]
         if tags and tags.split(','):
             success += 1
-            buildRelationships(book, tags.split(','), 'concept', 'tagged as')
+            for tag in tags.split(','):
+                buildRelationship(book, tag, 'concept', 'tagged as')
         else:
             print 'no tags - failed to tag ' + row["'TITLE'"]
 
