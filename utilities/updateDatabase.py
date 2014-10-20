@@ -22,6 +22,11 @@ with open(fileName, 'rb') as f:
         else:
             continue
 
+        existing = findByISBN(isbn)
+        if existing:
+            # book is already in library
+            continue
+
         book = gdb.node(name=title, isbn=isbn)
         book.labels.add('book')
 
