@@ -20,6 +20,15 @@ def getNode(nodeId):
 
     return json.dumps(buildNodeJson(node))
 
+@app.route('/api/node/<nodeId>', methods = ['PUT'])
+def editNode(nodeId):
+    data = request.get_json()
+    node = graph.getNodeById(nodeId)
+    node = graph.updateNode(data)
+
+    # this isn't RESTful
+    return json.dumps(buildNodeJson(node))
+
 @app.route('/api/name-lookup/<name>', methods = ['GET'])
 def findNodesByName(name):
     nodes = graph.getNodesByName(name)
@@ -32,7 +41,6 @@ def findNodesByName(name):
 def createRelationship():
     data = request.get_json()
     success = graph.createRelationship(data['start'], data['relationship'], data['end'])
-    # this is not RESTful and I do in fact feel bad.
     return getNode(data['start'])
 
 def buildNodeJson(node):

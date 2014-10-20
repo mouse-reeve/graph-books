@@ -19,6 +19,12 @@ angular.module('graphFactory', []).factory('Graph', function ($http) {
             return $http.post('/api/node/relationships', data).then(function (response) {
                 return response.data;
             });
+        },
+
+        editNode: function (nodeId, params) {
+            return $http.put('/api/node/' + nodeId, params).then(function (response) {
+                return response.data;
+            });
         }
     };
 });
