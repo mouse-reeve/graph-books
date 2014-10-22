@@ -24,6 +24,7 @@ def buildRelationship(inputNode, item, label, relationship, params={}):
     for rel in relationships:
         if node.id == rel.end.id:
             return
+
     inputNode.relationships.create(relationship, node)
 
 def findByISBN(isbn):
