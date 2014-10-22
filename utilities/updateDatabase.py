@@ -56,11 +56,6 @@ for row in reader:
         buildRelationship(book, author, 'person', 'written by', params)
     if 'publisher' in row and row['publisher']:
         buildRelationship(book, row['publisher'], 'company', 'published by')
-    if 'date_published' in row:
-        # again, assuming a lot about good data format in my csv. oh well?
-        year = row['date_published'][0:4]
-        if year:
-            buildRelationship(book, year, 'year', 'published in', {'year': int(year)})
     if 'series_details' in row:
         series = row['series_details'].split('|')[0]
         series = series.split('(')[0].strip()
