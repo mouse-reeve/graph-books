@@ -23,10 +23,25 @@ for bookData in data:
                     buildRelationship(book, character, 'person', 'has the character', params)
                 except:
                     pass
+
         if 'places' in bookData:
             for place in bookData['places']:
                 try:
                     buildRelationship(book, place, 'location', 'is set in')
+                except:
+                    pass
+
+        if 'tags' in bookData:
+            for tag in bookData['tags']:
+                try:
+                    buildRelationship(book, tag, 'concept', 'tagged as')
+                except:
+                    pass
+
+        if 'purchasedAt' in bookData:
+            for store in bookData['purchasedAt']:
+                try:
+                    buildRelationship(book, store, 'bookstore', 'purchased from')
                 except:
                     pass
 
