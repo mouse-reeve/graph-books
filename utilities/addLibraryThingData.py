@@ -14,7 +14,6 @@ for bookData in data:
     if 'isbn' in bookData:
         isbn = bookData['isbn']
         book = findByISBN(isbn)
-        print bookData['isbn']
 
         if 'characters' in bookData:
             params = {'type': 'character', 'anonymize': 0}
