@@ -35,13 +35,13 @@ for row in reader:
         book.set('price', row['list_price'])
     if 'format' in row:
         book.set('format', row['format'])
+    if 'publisher' in row and [row['publisher']]:
+        book.set('publisher', row['publisher'])
 
     # list fields, will be matched
     if 'author_details' in row:
         author = row['author_details'].split('|')
         book.set('author', [author[0]])
-    if 'publisher' in row and [row['publisher']]:
-        book.set('publisher', [row['publisher']])
     if 'series_details' in row:
         series = row['series_details'].split('|')[0]
         series = series.split('(')[0].strip()
