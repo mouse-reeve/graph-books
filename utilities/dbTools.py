@@ -4,55 +4,47 @@ from neo4jrestclient.client import GraphDatabase
 
 gdb = GraphDatabase("http://localhost:7474/db/data/")
 
-# Creates a relationship between a book to all other books that share a given
-# value for that field
-def relateSharedField(book, field, value):
+def relateSharedField(field, value):
     # Find nodes with trait
     q = 'MATCH n WHERE "%s" IN n.%s RETURN n' % (value, field)
     print q
-    try:
-        str(value)
-    except:
-        return False
-    if '"' in str(value):
-        return False
-
     nodes = gdb.query(q, returns=(client.Node))
-    for node in nodes:
+
+    fieldName = '%s:%s' % (field, value)
+    print fieldName
+
+    if len(nodes) > 41:
+        return
+
+    for index, node in enumerate(nodes):
         node = node[0]
+        for endNode in nodes[index+1:]:
+            endNode = endNode[0]
 
-        if node.id == book.id:
-            continue
-
-        if not len(node.relationships):
-            print 'adding relationship to %s and %s' % (book.id, node.id)
-            book.Knows(node, fields=[field], weight=1)
-        else:
             exists = False
             existingRelationship = None
             dupe = False
             for rel in node.relationships:
-                if field not in rel.properties['fields']\
-                        and (rel.start.id == book.id or rel.end.id == book.id):
+                if fieldName not in rel.properties['fields']\
+                        and (rel.start.id == endNode.id or rel.end.id == endNode.id):
                     exists = True
                     existingRelationship = rel
-
-                if field in rel.properties['fields']\
-                        and (rel.start.id == book.id or rel.end.id == book.id):
+                elif fieldName in rel.properties['fields']\
+                        and (rel.start.id == endNode.id or rel.end.id == endNode.id):
+                    # this should not happen on a clean build
                     dupe = True
                     break
-
             if not dupe:
                 if exists:
+                    print 'adding to rel'
                     fields = existingRelationship.properties['fields']
-                    fields.append(field)
-
+                    fields.append(fieldName)
                     weight = existingRelationship.properties['weight'] + 1
 
                     existingRelationship.set('fields', fields)
                     existingRelationship.set('weight', weight);
                 else:
-                    book.Knows(node, fields=[field], weight=1)
+                    node.Know(endNode, fields=[fieldName], weight=1)
 
 
 def findByISBN(isbn):

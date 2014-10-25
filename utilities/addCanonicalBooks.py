@@ -39,7 +39,7 @@ for row in reader:
     # list fields, will be matched
     if 'author_details' in row:
         author = row['author_details'].split('|')
-        book.set('author', author)
+        book.set('author', [author[0]])
     if 'publisher' in row and [row['publisher']]:
         book.set('publisher', [row['publisher']])
     if 'series_details' in row:
