@@ -2,7 +2,7 @@ import neo4jrestclient.client as client
 from neo4jrestclient.client import GraphDatabase
 
 gdb = GraphDatabase("http://localhost:7474/db/data/")
-graphname = 'mstBooks'
+graphNodeName = 'mstBook'
 
 # TODO: find a non-crappy way to set a start node
 startId = 94
@@ -23,7 +23,7 @@ for node in books:
 
 thereAreStillNodesOutThere = True
 
-while nodesAdded < nodeTotal:
+while thereAreStillNodesOutThere:
     print '--------------------------------   Finding available, weighted nodes'
     q = 'MATCH n WHERE n.weight>0 AND n.available RETURN n ORDER BY n.weight DESC'
     nodes = gdb.query(q, returns=(client.Node))
@@ -65,7 +65,7 @@ while nodesAdded < nodeTotal:
     print '-------------------------------------------------  Creating new node'
     node.set('available', False)
     newNode = gdb.node(source=node.id)
-    newNode.labels.add(graphName)
+    newNode.labels.add(graphNodeName)
     newNode.properties = node.properties
 
     node.set('mstNodeId', newNode.id)
