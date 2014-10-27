@@ -11,9 +11,8 @@ def relateSharedField(field, value):
     nodes = gdb.query(q, returns=(client.Node))
 
     fieldName = '%s:%s' % (field, value)
-    print fieldName
 
-    if len(nodes) > 41:
+    if len(nodes) < 41:
         return
 
     for index, node in enumerate(nodes):
@@ -32,6 +31,7 @@ def relateSharedField(field, value):
                 elif fieldName in rel.properties['fields']\
                         and (rel.start.id == endNode.id or rel.end.id == endNode.id):
                     # this should not happen on a clean build
+                    print 'duplicate'
                     dupe = True
                     break
             if not dupe:
