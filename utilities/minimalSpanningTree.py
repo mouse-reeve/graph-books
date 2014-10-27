@@ -1,14 +1,15 @@
 import neo4jrestclient.client as client
 from neo4jrestclient.client import GraphDatabase
-from dbTools import *
 
 gdb = GraphDatabase("http://localhost:7474/db/data/")
+graphname = 'mstBooks'
 
 # TODO: find a non-crappy way to set a start node
 startId = 94
 
 # Setup the original book nodes
-books = getAllBooks()
+q = 'MATCH n RETURN n'
+books = gdb.query(q, returns=(client.Node))
 nodeTotal = len(books)
 print nodeTotal
 
@@ -34,7 +35,7 @@ while nodesAdded < nodeTotal:
     # TODO: assess whether picking up off the top is ideal/acceptable
     node = nodes[0][0]
 
-    print '---------------------------------------------------  Adding new node'
+    print '----------------------------------------  Finding place for new node'
     bestEdge = None
     print 'getting relationships'
     edges = node.relationships
@@ -54,12 +55,25 @@ while nodesAdded < nodeTotal:
 
     if bestEdge:
         originalConnectorNode = bestEdge.start if bestEdge.end.id == node.id else bestEdge.end
-        connectorNode = findById(originalConnectorNode.properties['mstNodeId'])
+
+        q = 'MATCH (node) WHERE id(node) = %d RETURN node' % nodeId
+        connectorNode = gdb.query(q, returns=(client.Node))[0][0]
     else:
         connectorNode = None
         print 'IS THIS NODE 1 OR WHAT???'
 
-    newNode = addMSTNode(node, connectorNode)
+    print '-------------------------------------------------  Creating new node'
+    node.set('available', False)
+    newNode = gdb.node(source=node.id)
+    newNode.labels.add(graphName)
+    newNode.properties = node.properties
+
+    node.set('mstNodeId', newNode.id)
+    print 'created node with id %d' % newNode.id
+
+    if connectorNode:
+        newNode.Know(connectorNode)
+
 
     print 're-weighting available nodes that touch this one'
     for edge in edges:
