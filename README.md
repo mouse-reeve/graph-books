@@ -1,4 +1,4 @@
 graph-books
 ===========
 
-A graph representation of my library. 
+A graph representation of my library.
