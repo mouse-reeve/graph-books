@@ -1,6 +1,5 @@
 import csv
 import urllib2
-import neo4jrestclient.client as client
 from neo4jrestclient.client import GraphDatabase
 from dbTools import *
 

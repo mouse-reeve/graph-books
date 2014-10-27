@@ -35,7 +35,7 @@ class GraphService:
         return True
 
     def updateNode(self, node, params):
-        node.set(name, params['name'])
+        node.set('name', params['name'])
         for key, value in params['properties'].iteritem():
             node.properties.set(key, value)
         return node

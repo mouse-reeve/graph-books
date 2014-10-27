@@ -1,4 +1,3 @@
-import csv
 import neo4jrestclient.client as client
 from neo4jrestclient.client import GraphDatabase
 
