@@ -108,3 +108,24 @@ def getAllBooks():
     nodes = gdb.query(q, returns=(client.Node))
     return nodes
 
+def findById(nodeId):
+    q = 'MATCH (node) WHERE id(node) = %d RETURN node' % nodeId
+    nodes = gdb.query(q, returns=(client.Node))
+    return nodes[0][0]
+
+
+def addMSTNode(node, connectorNode):
+    node.set('available', False)
+    newNode = gdb.node(source=node.id)
+    newNode.labels.add('mstBook')
+    newNode.properties = node.properties
+    node.set('mstNodeId', newNode.id)
+    print 'created node with id %d' % newNode.id
+
+    if connectorNode:
+        newNode.Know(connectorNode)
+    else:
+        print 'THIS HAD BETTER BE NODE #1'
+
+    return newNode
+
