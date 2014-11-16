@@ -1,5 +1,6 @@
 from neo4jrestclient.client import GraphDatabase, Node
 import csv
+import json
 import urllib2
 
 class DatabaseEditor:
@@ -8,22 +9,11 @@ class DatabaseEditor:
 
     def __init__(self):
         githubBaseUrl = 'https://raw.githubusercontent.com/mouse-reeve'
-        self.canonicalCSV = '/book-catalogue/master/canonical.csv'
-        self.libraryThingCSV = '/book-catalogue/master/libraryThing.csv'
+        self.canonicalCSV = githubBaseUrl + '/book-catalogue/master/canonical.csv'
+        self.libraryThingCSV = githubBaseUrl + '/book-catalogue/master/libraryThing.csv'
+        self.libraryThingScraped = githubBaseUrl + '/book-scraper/master/items.json'
 
         self.gdb = GraphDatabase("http://localhost:7474/db/data/")
-
-        # get list of graphs (each graph has a different label)
-        q = 'MATCH n RETURN DISTINCT labels(n)'
-        graphResponse = self.gdb.query(q)
-        self.graphNames = []
-        for graph in graphResponse:
-            graph = graph[0][0]
-            if not graph[0] or not graph[0][0]:
-                print 'error parsing graph response'
-                print graph
-                continue
-            self.graphNames.append(graph)
 
 
     def getNodeById(self, nodeId):
@@ -35,64 +25,100 @@ class DatabaseEditor:
         return nodes[0][0]
 
 
-    def isValidGraphName(self, graphName):
-        return graphName in self.graphNames
-
-
     def getAvailableNodes(self, graphName):
-        if not self.isValidGraphName(graphName):
-            print 'That\'s not a real graph. You can\'t fool me'
-            return False
-
         q = 'MATCH (n:%s) WHERE n.weight>0' % graphName
         q += 'AND n.available RETURN n ORDER BY n.weight DESC'
         nodes = self.gdb.query(q, returns=Node)
         return nodes
 
 
-    def addBooks(self, graphName):
-        if not self.isValidGraphName(graphName):
-            return False
-
+    def addBooks(self):
+        graphName = 'bookData'
         response = urllib2.urlopen(self.canonicalCSV)
         reader = csv.DictReader(response)
 
-        for book in reversed(reader):
-            print book
-            # add book to graph
-
-        # download libraryThing book csv
-
-        # update the added books with LT data
-
-        # build relationships for new books
-        pass
-
-
-    def removeField(self, graphName, fieldName, value):
-        if not self.isValidGraphName(graphName):
-            return False
-
-        # Find all nodes with that field:
-        q = 'MATCH (n:%s) WHERE "%s" IN n.%s RETURN n' % (graphName, value, fieldName)
-        nodes = self.gdb.query(q, returns=Node)
-
-        for node in nodes:
-            node = node[0]
-            # Remove field from node properties
-
-            edges = node.relationships
-            for edge in edges:
-                # Reject nodes that do not contain field
-                # Decrement relationship weight
-                # Remove field from relationship field list
+        for row in reader:
+            if not 'title' in row or not 'isbn' in row:
                 continue
+            name = row['title'].replace('"', '')
+            book = self.findByName(name, 'book', graphName)
+            if not book:
+                book = self.createNode(name, 'book', graphName)
+                # non-list fields will not be matched
+                if 'isbn' in row:
+                    book.set('isbn', row['isbn'])
+                if 'description' in row:
+                    book.set('description', row['description'])
+                if 'pages' in row:
+                    book.set('pageCount', row['pages'])
+                if 'list_price' in row:
+                    book.set('price', row['list_price'])
+                if 'format' in row:
+                    book.set('format', row['format'])
+                if 'publisher' in row and [row['publisher']]:
+                    book.set('publisher', row['publisher'])
+
+                if 'author_details' in row:
+                    authors = row['author_details'].split('|')
+                    for author in authors:
+                        node = self.findOrCreateNode(author, 'author', graphName)
+                        node.Knows(book)
+                if 'series_details' in row:
+                    series = row['series_details'].split('|')[0]
+                    series = series.split('(')[0].strip()
+                    if len(series) > 0:
+                        node = self.findOrCreateNode(series, 'series', graphName)
+                        node.Knows(book)
+
+        # download libraryThing scraped data
+        response = urllib2.urlopen(self.libraryThingScraped)
+        data = json.load(response)
+
+        for datum in data:
+            if not 'isbn' in datum:
+                continue
+            isbn = row['isbn']
+            book = self.findByISBN(graphName, isbn)
+            if not book:
+                print 'BOOK NOT FOUND: %s' % datum
+                continue
+
+            for field in datum:
+                if not len(datum[field]):
+                    continue
+                if isinstance(datum[field], list):
+                    for item in datum[field]:
+                        item = item.replace('"', '')
+                        node = self.findOrCreateNode(item, field, graphName)
+                else:
+                    node = self.findOrCreateNode(datum[field], field, graphName)
+
+                node.Knows(book)
+
+
+    def findByName(self, name, contentType, graphName):
+        q = 'MATCH (n:%s) WHERE n.contentType = "%s" AND n.name = "%s" RETURN n' % (graphName, contentType, name)
+        nodes = self.gdb.query(q, returns=Node)
+        if len(nodes) > 0 and len(nodes[0]) > 0:
+            return nodes[0][0]
+        return False
+
+
+    def createNode(self, name, contentType, graphName):
+        print 'creating node %s, type %s, in %s' % (name, contentType, graphName)
+        node = self.gdb.node(name=name, contentType=contentType)
+        node.labels.add(graphName)
+        return node
+
+
+    def findOrCreateNode(self, name, contentType, graphName):
+        node = self.findByName(name, contentType, graphName)
+        if not node:
+            node = self.createNode(name, contentType, graphName)
+        return node
 
 
     def findByISBN(self, graphName, isbn):
-        if not self.isValidGraphName(graphName):
-            return False
-
         q = 'MATCH (n:%s) WHERE n.isbn = "%s" RETURN n' % (graphName, isbn)
         nodes = self.gdb.query(q, returns=Node)
 
