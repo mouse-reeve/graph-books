@@ -16,24 +16,12 @@ class DatabaseEditor:
         self.gdb = GraphDatabase("http://localhost:7474/db/data/")
 
 
-    def getNodeById(self, nodeId):
-        q = "MATCH n WHERE id(n)=%d RETURN n" % nodeId
-        nodes = self.gdb.query(q, returns=Node)
-        if not nodes[0] or not nodes[0][0]:
-            return False
-
-        return nodes[0][0]
-
-
-    def getAvailableNodes(self, graphName):
-        q = 'MATCH (n:%s) WHERE n.weight>0' % graphName
-        q += 'AND n.available RETURN n ORDER BY n.weight DESC'
-        nodes = self.gdb.query(q, returns=Node)
-        return nodes
-
-
     def addBooks(self):
         graphName = 'bookData'
+        self.addCanonicalData(graphName)
+        self.addScrapedData(graphName)
+
+    def addCanonicalData(self, graphName):
         response = urllib2.urlopen(self.canonicalCSV)
         reader = csv.DictReader(response)
 
@@ -70,6 +58,7 @@ class DatabaseEditor:
                         node = self.findOrCreateNode(series, 'series', graphName)
                         node.Knows(book)
 
+    def addScrapedData(self, graphName):
         # download libraryThing scraped data
         response = urllib2.urlopen(self.libraryThingScraped)
         data = json.load(response)
@@ -77,15 +66,16 @@ class DatabaseEditor:
         for datum in data:
             if not 'isbn' in datum:
                 continue
-            isbn = row['isbn']
+            isbn = datum['isbn']
             book = self.findByISBN(graphName, isbn)
             if not book:
                 print 'BOOK NOT FOUND: %s' % datum
                 continue
 
             for field in datum:
-                if not len(datum[field]):
+                if field is 'isbn' or not len(datum[field]):
                     continue
+
                 if isinstance(datum[field], list):
                     for item in datum[field]:
                         item = item.replace('"', '')
@@ -94,6 +84,24 @@ class DatabaseEditor:
                     node = self.findOrCreateNode(datum[field], field, graphName)
 
                 node.Knows(book)
+
+
+    def getNodeById(self, nodeId):
+        q = "MATCH n WHERE id(n)=%d RETURN n" % nodeId
+        nodes = self.gdb.query(q, returns=Node)
+        if not nodes[0] or not nodes[0][0]:
+            return False
+
+        return nodes[0][0]
+
+
+    def getAvailableNodes(self, graphName):
+        q = 'MATCH (n:%s) WHERE n.weight>0' % graphName
+        q += 'AND n.available RETURN n ORDER BY n.weight DESC'
+        nodes = self.gdb.query(q, returns=Node)
+        return nodes
+
+
 
 
     def findByName(self, name, contentType, graphName):
