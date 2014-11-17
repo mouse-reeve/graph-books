@@ -76,14 +76,23 @@ class DatabaseEditor:
                 if field is 'isbn' or not len(datum[field]):
                     continue
 
+
                 if isinstance(datum[field], list):
                     for item in datum[field]:
-                        item = item.replace('"', '')
-                        node = self.findOrCreateNode(item, field, graphName)
+                        parts = item.split(':')
+                        if field == 'tags' and len(parts) == 2:
+                            if parts[0] == 'REFERENCES':
+                                isbn = parts[1]
+                                node = self.findByISBN(graphName, isbn)
+                            elif parts[0] == 'RECOMMENDER':
+                                node = self.findOrCreateNode(parts[1], 'recommender', graphName)
+                        else:
+                            item = item.replace('"', '')
+                            node = self.findOrCreateNode(item, field, graphName)
+                        node.Knows(book)
                 else:
                     node = self.findOrCreateNode(datum[field], field, graphName)
-
-                node.Knows(book)
+                    node.Knows(book)
 
 
     def getNodeById(self, nodeId):
@@ -100,8 +109,6 @@ class DatabaseEditor:
         q += 'AND n.available RETURN n ORDER BY n.weight DESC'
         nodes = self.gdb.query(q, returns=Node)
         return nodes
-
-
 
 
     def findByName(self, name, contentType, graphName):
