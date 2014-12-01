@@ -101,14 +101,14 @@ class DatabaseEditor:
                 for tag in row['tags']:
                     parts = tag.split(':')
                     if len(parts) == 2:
-                        if parts[0] is 'REFERENCES':
+                        if parts[0] == 'REFERENCES':
                             isbn = parts[1]
                             node = self.findByISBN(graphName, isbn)
                             node.Knows(book)
-                        elif parts[0] is 'RECOMMENDER':
+                        elif parts[0] == 'RECOMMENDER':
                             node = self.findOrCreateNode(parts[1], 'recommender', graphName)
                             node.Knows(book)
-                        elif parts[0] is 'TYPE':
+                        elif parts[0] == 'TYPE':
                             node = self.findOrCreateNode(parts[1], 'type', graphName)
                             node.Knows(book)
                     else:
