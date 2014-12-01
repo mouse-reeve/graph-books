@@ -20,6 +20,7 @@ class DatabaseEditor:
         graphName = 'bookData'
         self.addCanonicalData(graphName)
         self.addLibraryThingData(graphName)
+        self.addScrapedData(graphName)
         #TODO: create tag updater from library thing csv
 
 
@@ -120,6 +121,9 @@ class DatabaseEditor:
         response = urllib2.urlopen(self.libraryThingScraped)
         data = json.load(response)
 
+        # hacky fix for redundant scraped data
+        ignoreFields = ['purchasedAt', 'isbn', 'tags']
+
         for datum in data:
             if not 'isbn' in datum:
                 continue
@@ -130,7 +134,7 @@ class DatabaseEditor:
                 continue
 
             for field in datum:
-                if field is 'isbn' or not len(datum[field]):
+                if any(field in f for f in ignoreFields) or not len(datum[field]):
                     continue
 
                 if isinstance(datum[field], list):
