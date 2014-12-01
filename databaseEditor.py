@@ -154,13 +154,13 @@ class DatabaseEditor:
                 'series':       3,
                 'year':         4,
                 'places':       5,
-                'tags':         7,
-                'characters':   7,
+                'tags':         5,
+                'language':     6,
                 'events':       7,
-                'language':     7,
                 'type':         8,
                 'recommender':  8,
                 'references':   8,
+                'characters':   9,
                 'author':       10
         }
 
