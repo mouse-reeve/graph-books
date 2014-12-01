@@ -20,6 +20,7 @@ class DatabaseEditor:
         graphName = 'bookData'
         self.addCanonicalData(graphName)
         self.addScrapedData(graphName)
+        #TODO: create tag updater from library thing csv
 
     def addCanonicalData(self, graphName):
         response = urllib2.urlopen(self.canonicalCSV)
@@ -58,6 +59,7 @@ class DatabaseEditor:
                         node = self.findOrCreateNode(series, 'series', graphName)
                         node.Knows(book)
 
+
     def addScrapedData(self, graphName):
         # download libraryThing scraped data
         response = urllib2.urlopen(self.libraryThingScraped)
@@ -76,7 +78,6 @@ class DatabaseEditor:
                 if field is 'isbn' or not len(datum[field]):
                     continue
 
-
                 if isinstance(datum[field], list):
                     for item in datum[field]:
                         parts = item.split(':')
@@ -87,12 +88,28 @@ class DatabaseEditor:
                             elif parts[0] == 'RECOMMENDER':
                                 node = self.findOrCreateNode(parts[1], 'recommender', graphName)
                         else:
-                            item = item.replace('"', '')
                             node = self.findOrCreateNode(item, field, graphName)
                         node.Knows(book)
                 else:
                     node = self.findOrCreateNode(datum[field], field, graphName)
                     node.Knows(book)
+
+
+    def createBookGraph(self):
+        graphName = 'booksOnly'
+        weights = {
+                'publisher':    1,
+                'purchasedAt':  2,
+                'series':       3,
+                'year':         4,
+                'places':       5,
+                'tags':         7,
+                'characters':   7,
+                'events':       7,
+                'recommender':  8,
+                'references':   8,
+                'author':       10
+        }
 
 
     def getNodeById(self, nodeId):
@@ -127,6 +144,7 @@ class DatabaseEditor:
 
 
     def findOrCreateNode(self, name, contentType, graphName):
+        name = name.replace('"', '')
         node = self.findByName(name, contentType, graphName)
         if not node:
             node = self.createNode(name, contentType, graphName)
