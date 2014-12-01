@@ -10,7 +10,7 @@ class DatabaseEditor:
     def __init__(self):
         githubBaseUrl = 'https://raw.githubusercontent.com/mouse-reeve'
         self.canonicalCSV = githubBaseUrl + '/book-catalogue/master/canonical.csv'
-        self.libraryThingCSV = githubBaseUrl + '/book-catalogue/master/libraryThing.csv'
+        self.libraryThingJSON = githubBaseUrl + '/book-catalogue/master/librarything.json'
         self.libraryThingScraped = githubBaseUrl + '/book-scraper/master/items.json'
 
         self.gdb = GraphDatabase("http://localhost:7474/db/data/")
@@ -19,8 +19,9 @@ class DatabaseEditor:
     def addBooks(self):
         graphName = 'bookData'
         self.addCanonicalData(graphName)
-        self.addScrapedData(graphName)
+        self.addLibraryThingData(graphName)
         #TODO: create tag updater from library thing csv
+
 
     def addCanonicalData(self, graphName):
         response = urllib2.urlopen(self.canonicalCSV)
@@ -60,6 +61,60 @@ class DatabaseEditor:
                         node.Knows(book)
 
 
+    def addLibraryThingData(self, graphName):
+        # download libraryThing json export
+        response = urllib2.urlopen(self.libraryThingJSON)
+        data = json.load(response)
+
+        for datum in data:
+            row = data[datum]
+
+            if not 'isbn' in row or not 'title' in row:
+                continue
+
+            try:
+                isbns = row['isbn'].values()
+            except:
+                continue
+
+            name = row['title']
+
+            book = self.findByISBN(graphName, isbns[0])
+            if not book:
+                continue
+
+            if 'weight' in row:
+                book.set('weight', row['weight'])
+            if 'dimensions' in row:
+                book.set('dimension', row['dimensions'])
+
+            if 'originallanguage' in row:
+                node = self.findOrCreateNode(row['originallanguage'][0], 'language', graphName)
+                node.Knows(book)
+
+            if 'fromwhere' in row:
+                node = self.findOrCreateNode(row['fromwhere'], 'purchasedAt', graphName)
+                node.Knows(book)
+
+            if 'tags' in row:
+                for tag in row['tags']:
+                    parts = tag.split(':')
+                    if len(parts) == 2:
+                        if parts[0] is 'REFERENCES':
+                            isbn = parts[1]
+                            node = self.findByISBN(graphName, isbn)
+                            node.Knows(book)
+                        elif parts[0] is 'RECOMMENDER':
+                            node = self.findOrCreateNode(parts[1], 'recommender', graphName)
+                            node.Knows(book)
+                        elif parts[0] is 'TYPE':
+                            node = self.findOrCreateNode(parts[1], 'type', graphName)
+                            node.Knows(book)
+                    else:
+                        node = self.findOrCreateNode(tag, 'tags', graphName)
+                        node.Knows(book)
+
+
     def addScrapedData(self, graphName):
         # download libraryThing scraped data
         response = urllib2.urlopen(self.libraryThingScraped)
@@ -80,15 +135,7 @@ class DatabaseEditor:
 
                 if isinstance(datum[field], list):
                     for item in datum[field]:
-                        parts = item.split(':')
-                        if field == 'tags' and len(parts) == 2:
-                            if parts[0] == 'REFERENCES':
-                                isbn = parts[1]
-                                node = self.findByISBN(graphName, isbn)
-                            elif parts[0] == 'RECOMMENDER':
-                                node = self.findOrCreateNode(parts[1], 'recommender', graphName)
-                        else:
-                            node = self.findOrCreateNode(item, field, graphName)
+                        node = self.findOrCreateNode(item, field, graphName)
                         node.Knows(book)
                 else:
                     node = self.findOrCreateNode(datum[field], field, graphName)
@@ -106,6 +153,8 @@ class DatabaseEditor:
                 'tags':         7,
                 'characters':   7,
                 'events':       7,
+                'language':     7,
+                'type':         8,
                 'recommender':  8,
                 'references':   8,
                 'author':       10
