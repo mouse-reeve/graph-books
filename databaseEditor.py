@@ -2,6 +2,7 @@ from neo4jrestclient.client import GraphDatabase, Node
 import csv
 import json
 import urllib2
+import math
 
 class DatabaseEditor:
     ''' updates and modifies the book database '''
@@ -21,7 +22,6 @@ class DatabaseEditor:
         self.addCanonicalData(graphName)
         self.addLibraryThingData(graphName)
         self.addScrapedData(graphName)
-        #TODO: create tag updater from library thing csv
 
 
     def addCanonicalData(self, graphName):
@@ -35,7 +35,6 @@ class DatabaseEditor:
             book = self.findByName(name, 'book', graphName)
             if not book:
                 book = self.createNode(name, 'book', graphName)
-                # non-list fields will not be matched
                 if 'isbn' in row:
                     book.set('isbn', row['isbn'])
                 if 'description' in row:
@@ -142,6 +141,15 @@ class DatabaseEditor:
                         node = self.findOrCreateNode(item, field, graphName)
                         node.Knows(book)
                 else:
+                    if field == 'year':
+                        try:
+                            numYear = int(datum['year'])
+                            decade = str(int(math.floor(numYear / 10) * 10))
+                            node = self.findOrCreateNode(decade, 'decade', graphName)
+                            node.Knows(book)
+                        except:
+                            print 'failed to create decade for year %s' % datum['year']
+                            pass
                     node = self.findOrCreateNode(datum[field], field, graphName)
                     node.Knows(book)
 
@@ -157,6 +165,7 @@ class DatabaseEditor:
                 'tags':         5,
                 'language':     6,
                 'events':       7,
+                'decade':       7,
                 'type':         8,
                 'recommender':  8,
                 'references':   8,
