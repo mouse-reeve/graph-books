@@ -162,16 +162,42 @@ class DatabaseEditor:
                 'series':       3,
                 'year':         4,
                 'places':       5,
-                'tags':         5,
                 'language':     6,
                 'events':       7,
                 'decade':       7,
+                'tags':         7,
                 'type':         8,
                 'recommender':  8,
                 'references':   8,
                 'characters':   9,
                 'author':       10
         }
+
+        # this seems messy/problematic, but it should work.
+        q = 'MATCH (n:bookData) WHERE n.contentType="book" CREATE (b:booksOnly {name: n.name, referenceId: id(n), isbn: n.isbn}) RETURN b'
+        allBooks = self.gdb.query(q, returns=Node)._elements
+
+        while len(allBooks):
+            book = allBooks.pop()[0]
+            print 'working on %s' % book.properties['name']
+            print len(allBooks)
+            for relatedBook in allBooks:
+                connections = self.getConnectionNodes(book.properties['referenceId'], relatedBook[0].properties['referenceId'])
+                weight = 0
+                properties = []
+                for connection in connections:
+                    connectionType = connection[0].properties['contentType']
+                    weight += weights[connectionType]
+                    properties.append(connectionType)
+
+                if weight > 0:
+                    book.knows(relatedBook[0], weight=weight, sharedAttributes=', '.join(properties))
+
+
+    def getConnectionNodes(self, bookId1, bookId2):
+        q = 'MATCH b1 -- n -- b2 WHERE id(b1)=%d AND id(b2)=%d AND NOT n.contentType="book" RETURN distinct n' % (bookId1, bookId2)
+        nodes = self.gdb.query(q, returns=Node)
+        return nodes
 
 
     def getNodeById(self, nodeId):
