@@ -81,7 +81,11 @@ class DatabaseEditor:
 
             book = self.findByISBN(graphName, isbns[0])
             if not book:
-                continue
+                book = self.findByTitle(name, graphName)
+                if not book:
+                    print 'BOOK NOT FOUND'
+                    print name
+                    continue
 
             if 'weight' in row:
                 book.set('weight', row['weight'])
@@ -186,7 +190,7 @@ class DatabaseEditor:
                 weight = 0
                 properties = []
                 for connection in connections:
-                    connectionType = connection[0].properties['contentType']
+                    connectionType = connection[0].properties['contentType'] + ':' + connection[0].properties['name']
                     weight += weights[connectionType]
                     properties.append(connectionType)
 
@@ -252,6 +256,14 @@ class DatabaseEditor:
             nodes = self.gdb.query(q, returns=Node)
             if len(nodes) > 0 and len(nodes[0]) > 0:
                 return nodes[0][0]
+        return False
+
+
+    def findByTitle(self, title, graphName):
+        q = 'MATCH (b:%s) WHERE b.name =~ "(?i).*%s.*" RETURN b' % (graphName, title)
+        nodes = self.gdb.query(q, returns=Node)
+        if len(nodes) > 0 and len(nodes[0]) > 0:
+            return nodes[0][0]
         return False
 
 
