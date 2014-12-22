@@ -190,9 +190,9 @@ class DatabaseEditor:
                 weight = 0
                 properties = []
                 for connection in connections:
-                    connectionType = connection[0].properties['contentType'] + ':' + connection[0].properties['name']
+                    connectionType = connection[0].properties['contentType']
                     weight += weights[connectionType]
-                    properties.append(connectionType)
+                    properties.append(connectionType + ':' + connection[0].properties['name'])
 
                 if weight > 0:
                     book.knows(relatedBook[0], weight=weight, sharedAttributes=', '.join(properties))
