@@ -4,6 +4,7 @@ import json
 import urllib2
 import math
 
+
 class DatabaseEditor:
     ''' updates and modifies the book database '''
 
@@ -16,13 +17,11 @@ class DatabaseEditor:
 
         self.gdb = GraphDatabase("http://localhost:7474/db/data/")
 
-
     def addBooks(self):
         graphName = 'bookData'
         self.addCanonicalData(graphName)
         self.addLibraryThingData(graphName)
         self.addScrapedData(graphName)
-
 
     def addCanonicalData(self, graphName):
         response = urllib2.urlopen(self.canonicalCSV)
@@ -60,7 +59,6 @@ class DatabaseEditor:
                         node = self.findOrCreateNode(series, 'series', graphName)
                         node.Knows(book)
 
-
     def addLibraryThingData(self, graphName):
         # download libraryThing json export
         response = urllib2.urlopen(self.libraryThingJSON)
@@ -93,9 +91,9 @@ class DatabaseEditor:
                 book.set('dimension', row['dimensions'])
 
             # TODO: this data is total crap.
-            #if 'originallanguage' in row:
-            #    node = self.findOrCreateNode(row['originallanguage'][0], 'language', graphName)
-            #    node.Knows(book)
+            # if 'originallanguage' in row:
+            #     node = self.findOrCreateNode(row['originallanguage'][0], 'language', graphName)
+            #     node.Knows(book)
 
             if 'fromwhere' in row:
                 node = self.findOrCreateNode(row['fromwhere'], 'purchasedAt', graphName)
@@ -118,7 +116,6 @@ class DatabaseEditor:
                     else:
                         node = self.findOrCreateNode(tag, 'tags', graphName)
                         node.Knows(book)
-
 
     def addScrapedData(self, graphName):
         # download libraryThing scraped data
@@ -158,29 +155,28 @@ class DatabaseEditor:
                     node = self.findOrCreateNode(datum[field], field, graphName)
                     node.Knows(book)
 
-
     def createBookGraph(self):
         graphName = 'booksOnly'
         weights = {
                 'publisher':    1,
                 'purchasedAt':  2,
                 'series':       3,
-                'year':         4,
+                'year':         3,
+                'decade':       4,
                 'places':       5,
                 'language':     6,
                 'events':       7,
-                'decade':       7,
                 'tags':         7,
-                'type':         8,
                 'recommender':  8,
                 'references':   8,
                 'characters':   9,
-                'author':       10
+                'author':       10,
+                'type':         15
         }
 
         # this seems messy/problematic, but it should work.
         # leaving it outside a function since it's so specific
-        q = 'MATCH (n:bookData) WHERE n.contentType="book" CREATE (b:booksOnly {name: n.name, referenceId: id(n), isbn: n.isbn}) RETURN b'
+        q = 'MATCH (n:bookData) WHERE n.contentType = "book" CREATE (b:booksOnly {name: n.name, referenceId: id(n), isbn: n.isbn}) RETURN b'
         allBooks = self.gdb.query(q, returns=Node)._elements
 
         while len(allBooks):
@@ -199,7 +195,6 @@ class DatabaseEditor:
                 if weight > 0:
                     book.knows(relatedBook[0], weight=weight, sharedAttributes=', '.join(properties))
 
-
     def minimalSpanningTree(self):
         booksGraph = 'booksOnly'
         mstGraph = 'mstBooks'
@@ -207,7 +202,7 @@ class DatabaseEditor:
         self.gdb.query(q)
 
         # start with the True Confessions of Charlotte Doyle, obvi
-        q = 'MATCH (n:%s) WHERE n.isbn="9780380714759" SET n.weight=1' % booksGraph
+        q = 'MATCH (n:%s) WHERE n.isbn = "9780380714759" SET n.weight = 1' % booksGraph
         self.gdb.query(q)
 
         areNodesAvailable = True
@@ -224,20 +219,20 @@ class DatabaseEditor:
 
             node = nodes[0][0]
 
-            # find the heighest weighed node already in the mst graph
+            # find the highest weighed node already in the mst graph
             connectorNode = None
-            edges = node.relationships
-            q = 'MATCH (n:%s) - [r] - b WHERE id(n)=%d AND NOT b.available RETURN b ORDER BY r.weight DESC limit 1' % (booksGraph, node.id)
+            weight = 0
+            q = 'MATCH (n:%s) - [r] - b WHERE id(n) = %d AND NOT b.available RETURN b ORDER BY r.weight DESC limit 1' % (booksGraph, node.id)
             connectors = self.gdb.query(q, returns=Node)
 
             # if there's no connector node, it's HOPEFULLY ok
             if len(connectors) and len(connectors[0]):
-                q = 'MATCH n - [r] - b WHERE id(n)=%d AND id(b)=%d RETURN r.weight' % (node.id, connectors[0][0].id)
+                q = 'MATCH n - [r] - b WHERE id(n) = %d AND id(b) = %d RETURN r.weight' % (node.id, connectors[0][0].id)
                 weight = self.gdb.query(q)[0][0]
                 print 'found node with weight %d' % weight
 
                 # get the equivalent node from the MST graph
-                q = 'MATCH n WHERE id(n)=%d RETURN n' % connectors[0][0].properties['mstNodeId']
+                q = 'MATCH n WHERE id(n) = %d RETURN n' % connectors[0][0].properties['mstNodeId']
                 nodes = self.gdb.query(q, returns=Node)
                 connectorNode = nodes[0][0]
             else:
@@ -246,7 +241,7 @@ class DatabaseEditor:
             print 'CREATING the new MST node'
             # these two nodes will reference each other
             node.set('available', False)
-            mstNode = self.gdb.node(name=node.properties['name'], isbn=node.properties['isbn'])
+            mstNode = self.gdb.node(name = node.properties['name'], isbn = node.properties['isbn'], weight = weight)
             mstNode.labels.add(mstGraph)
             node.set('mstNodeId', mstNode.id)
 
@@ -254,18 +249,16 @@ class DatabaseEditor:
                 mstNode.nows(connectorNode)
 
             print 'REWEIGHTING all remaining nodes'
-            q = 'MATCH n - [r] - b WHERE id(n)=%d AND r.weight > b.weight SET b.weight = r.weight' % node.id
+            q = 'MATCH n - [r] - b WHERE id(n) = %d AND r.weight > b.weight SET b.weight = r.weight' % node.id
             self.gdb.query(q)
 
 
 # --------------------------- queries
 
-
     def getConnectionNodes(self, bookId1, bookId2):
         q = 'MATCH b1 -- n -- b2 WHERE id(b1)=%d AND id(b2)=%d AND NOT n.contentType="book" RETURN distinct n' % (bookId1, bookId2)
         nodes = self.gdb.query(q, returns=Node)
         return nodes
-
 
     def getNodeById(self, nodeId):
         q = "MATCH n WHERE id(n)=%d RETURN n" % nodeId
@@ -275,13 +268,11 @@ class DatabaseEditor:
 
         return nodes[0][0]
 
-
     def getAvailableNodes(self, graphName):
         q = 'MATCH (n:%s) WHERE n.weight>0' % graphName
         q += 'AND n.available RETURN n ORDER BY n.weight DESC'
         nodes = self.gdb.query(q, returns=Node)
         return nodes
-
 
     def findByName(self, name, contentType, graphName):
         q = 'MATCH (n:%s) WHERE n.contentType = "%s" AND n.name = "%s" RETURN n' % (graphName, contentType, name)
@@ -289,7 +280,6 @@ class DatabaseEditor:
         if len(nodes) > 0 and len(nodes[0]) > 0:
             return nodes[0][0]
         return False
-
 
     def createNode(self, name, contentType, graphName):
         print 'creating node %s, type %s, in %s' % (name, contentType, graphName)
@@ -304,7 +294,6 @@ class DatabaseEditor:
         if not node:
             node = self.createNode(name, contentType, graphName)
         return node
-
 
     def findByISBN(self, graphName, isbn):
         q = 'MATCH (n:%s) WHERE n.isbn = "%s" RETURN n' % (graphName, isbn)
@@ -321,12 +310,9 @@ class DatabaseEditor:
                 return nodes[0][0]
         return False
 
-
     def findByTitle(self, title, graphName):
         q = 'MATCH (b:%s) WHERE b.name =~ "(?i).*%s.*" RETURN b' % (graphName, title)
         nodes = self.gdb.query(q, returns=Node)
         if len(nodes) > 0 and len(nodes[0]) > 0:
             return nodes[0][0]
         return False
-
-
