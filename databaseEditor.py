@@ -30,11 +30,10 @@ class DatabaseEditor:
             if 'title' not in row or 'isbn' not in row:
                 continue
             name = row['title'].replace('"', '')
-            book = self.findByName(name, 'book', graph_name)
+            book = self.find_by_isbn(row['isbn'], graph_name)
             if not book:
                 book = self.create_node(name, 'book', graph_name)
-                if 'isbn' in row:
-                    book.set('isbn', row['isbn'])
+                book.set('isbn', row['isbn'])
                 if 'description' in row:
                     book.set('description', row['description'])
                 if 'pages' in row:
@@ -99,7 +98,7 @@ class DatabaseEditor:
                     if len(parts) == 2:
                         if parts[0] == 'REFERENCES':
                             isbn = parts[1]
-                            node = self.find_by_isbn(graph_name, isbn)
+                            node = self.find_by_isbn(isbn, graph_name)
                             node.Knows(book)
                         elif parts[0] == 'RECOMMENDER':
                             node = self.find_or_create_node(parts[1], 'recommender', graph_name)
@@ -123,7 +122,7 @@ class DatabaseEditor:
             if 'isbn' not in datum:
                 continue
             isbn = datum['isbn']
-            book = self.find_by_isbn(graph_name, isbn)
+            book = self.find_by_isbn(isbn, graph_name)
             if not book:
                 print 'BOOK NOT FOUND: %s' % datum
                 continue
@@ -246,8 +245,7 @@ class DatabaseEditor:
             q = 'MATCH n - [r] - b WHERE id(n) = %d AND r.weight > b.weight SET b.weight = r.weight' % node.id
             self.gdb.query(q)
 
-
-# --------------------------- queries
+    # queries
 
     def get_connection_nodes(self, book_id_1, book_id_2):
         q = 'MATCH b1 -- n -- b2 ' \
@@ -255,13 +253,6 @@ class DatabaseEditor:
             'RETURN distinct n' % (book_id_1, book_id_2)
         nodes = self.gdb.query(q, returns=Node)
         return nodes
-
-    def findByName(self, name, content_type, graph_name):
-        q = 'MATCH (n:%s) WHERE n.contentType = "%s" AND n.name = "%s" RETURN n' % (graph_name, content_type, name)
-        nodes = self.gdb.query(q, returns=Node)
-        if len(nodes) > 0 and len(nodes[0]) > 0:
-            return nodes[0][0]
-        return False
 
     def create_node(self, name, content_type, graph_name):
         print 'creating node %s, type %s, in %s' % (name, content_type, graph_name)
@@ -276,7 +267,7 @@ class DatabaseEditor:
             node = self.create_node(name, content_type, graph_name)
         return node
 
-    def find_by_isbn(self, graph_name, isbn):
+    def find_by_isbn(self, isbn, graph_name):
         q = 'MATCH (n:%s) WHERE n.isbn = "%s" RETURN n' % (graph_name, isbn)
         nodes = self.gdb.query(q, returns=Node)
 
