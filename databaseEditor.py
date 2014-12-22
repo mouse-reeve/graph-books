@@ -92,9 +92,10 @@ class DatabaseEditor:
             if 'dimensions' in row:
                 book.set('dimension', row['dimensions'])
 
-            if 'originallanguage' in row:
-                node = self.findOrCreateNode(row['originallanguage'][0], 'language', graphName)
-                node.Knows(book)
+            # TODO: this data is total crap.
+            #if 'originallanguage' in row:
+            #    node = self.findOrCreateNode(row['originallanguage'][0], 'language', graphName)
+            #    node.Knows(book)
 
             if 'fromwhere' in row:
                 node = self.findOrCreateNode(row['fromwhere'], 'purchasedAt', graphName)
@@ -178,6 +179,7 @@ class DatabaseEditor:
         }
 
         # this seems messy/problematic, but it should work.
+        # leaving it outside a function since it's so specific
         q = 'MATCH (n:bookData) WHERE n.contentType="book" CREATE (b:booksOnly {name: n.name, referenceId: id(n), isbn: n.isbn}) RETURN b'
         allBooks = self.gdb.query(q, returns=Node)._elements
 
@@ -196,6 +198,67 @@ class DatabaseEditor:
 
                 if weight > 0:
                     book.knows(relatedBook[0], weight=weight, sharedAttributes=', '.join(properties))
+
+
+    def minimalSpanningTree(self):
+        booksGraph = 'booksOnly'
+        mstGraph = 'mstBooks'
+        q = 'MATCH (n:%s) SET n.weight = 0, n.available = True, n.mstNodeId = ""' % booksGraph
+        self.gdb.query(q)
+
+        # start with the True Confessions of Charlotte Doyle, obvi
+        q = 'MATCH (n:%s) WHERE n.isbn="9780380714759" SET n.weight=1' % booksGraph
+        self.gdb.query(q)
+
+        areNodesAvailable = True
+        while areNodesAvailable:
+            print 'FINDING available nodes by weight'
+
+            # just picking the first node. Probs not ideal
+            q = 'MATCH (n:%s) WHERE n.weight > 0 AND n.available RETURN n ORDER BY n.weight DESC limit 1' % booksGraph
+            nodes = self.gdb.query(q, returns=Node)
+
+            if not len(nodes):
+                areNodesAvailable = False
+                break
+
+            node = nodes[0][0]
+
+            # find the heighest weighed node already in the mst graph
+            connectorNode = None
+            edges = node.relationships
+            q = 'MATCH (n:%s) - [r] - b WHERE id(n)=%d AND NOT b.available RETURN b ORDER BY r.weight DESC limit 1' % (booksGraph, node.id)
+            connectors = self.gdb.query(q, returns=Node)
+
+            # if there's no connector node, it's HOPEFULLY ok
+            if len(connectors) and len(connectors[0]):
+                q = 'MATCH n - [r] - b WHERE id(n)=%d AND id(b)=%d RETURN r.weight' % (node.id, connectors[0][0].id)
+                weight = self.gdb.query(q)[0][0]
+                print 'found node with weight %d' % weight
+
+                # get the equivalent node from the MST graph
+                q = 'MATCH n WHERE id(n)=%d RETURN n' % connectors[0][0].properties['mstNodeId']
+                nodes = self.gdb.query(q, returns=Node)
+                connectorNode = nodes[0][0]
+            else:
+                print 'this had better be node 1'
+
+            print 'CREATING the new MST node'
+            # these two nodes will reference each other
+            node.set('available', False)
+            mstNode = self.gdb.node(name=node.properties['name'], isbn=node.properties['isbn'])
+            mstNode.labels.add(mstGraph)
+            node.set('mstNodeId', mstNode.id)
+
+            if connectorNode:
+                mstNode.nows(connectorNode)
+
+            print 'REWEIGHTING all remaining nodes'
+            q = 'MATCH n - [r] - b WHERE id(n)=%d AND r.weight > b.weight SET b.weight = r.weight' % node.id
+            self.gdb.query(q)
+
+
+# --------------------------- queries
 
 
     def getConnectionNodes(self, bookId1, bookId2):
