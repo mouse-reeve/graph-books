@@ -6,34 +6,33 @@ import math
 
 
 class DatabaseEditor:
+
     ''' updates and modifies the book database '''
-
-
     def __init__(self):
-        githubBaseUrl = 'https://raw.githubusercontent.com/mouse-reeve'
-        self.canonicalCSV = githubBaseUrl + '/book-catalogue/master/canonical.csv'
-        self.libraryThingJSON = githubBaseUrl + '/book-catalogue/master/librarything.json'
-        self.libraryThingScraped = githubBaseUrl + '/book-scraper/master/items.json'
+        github_base_url = 'https://raw.githubusercontent.com/mouse-reeve'
+        self.canonicalCSV = github_base_url + '/book-catalogue/master/canonical.csv'
+        self.libraryThingJSON = github_base_url + '/book-catalogue/master/librarything.json'
+        self.libraryThingScraped = github_base_url + '/book-scraper/master/items.json'
 
         self.gdb = GraphDatabase("http://localhost:7474/db/data/")
 
-    def addBooks(self):
-        graphName = 'bookData'
-        self.addCanonicalData(graphName)
-        self.addLibraryThingData(graphName)
-        self.addScrapedData(graphName)
+    def add_books(self):
+        graph_name = 'bookData'
+        self.add_canonical_data(graph_name)
+        self.add_library_thing_data(graph_name)
+        self.add_scraped_data(graph_name)
 
-    def addCanonicalData(self, graphName):
+    def add_canonical_data(self, graph_name):
         response = urllib2.urlopen(self.canonicalCSV)
         reader = csv.DictReader(response)
 
         for row in reader:
-            if not 'title' in row or not 'isbn' in row:
+            if 'title' not in row or 'isbn' not in row:
                 continue
             name = row['title'].replace('"', '')
-            book = self.findByName(name, 'book', graphName)
+            book = self.findByName(name, 'book', graph_name)
             if not book:
-                book = self.createNode(name, 'book', graphName)
+                book = self.create_node(name, 'book', graph_name)
                 if 'isbn' in row:
                     book.set('isbn', row['isbn'])
                 if 'description' in row:
@@ -50,16 +49,16 @@ class DatabaseEditor:
                 if 'author_details' in row:
                     authors = row['author_details'].split('|')
                     for author in authors:
-                        node = self.findOrCreateNode(author, 'author', graphName)
+                        node = self.find_or_create_node(author, 'author', graph_name)
                         node.Knows(book)
                 if 'series_details' in row:
                     series = row['series_details'].split('|')[0]
                     series = series.split('(')[0].strip()
                     if len(series) > 0:
-                        node = self.findOrCreateNode(series, 'series', graphName)
+                        node = self.find_or_create_node(series, 'series', graph_name)
                         node.Knows(book)
 
-    def addLibraryThingData(self, graphName):
+    def add_library_thing_data(self, graph_name):
         # download libraryThing json export
         response = urllib2.urlopen(self.libraryThingJSON)
         data = json.load(response)
@@ -67,7 +66,7 @@ class DatabaseEditor:
         for datum in data:
             row = data[datum]
 
-            if not 'isbn' in row or not 'title' in row:
+            if 'isbn' not in row or 'title' not in row:
                 continue
 
             try:
@@ -77,9 +76,9 @@ class DatabaseEditor:
 
             name = row['title']
 
-            book = self.findByISBN(graphName, isbns[0])
+            book = self.find_by_isbn(graph_name, isbns[0])
             if not book:
-                book = self.findByTitle(name, graphName)
+                book = self.find_by_title(name, graph_name)
                 if not book:
                     print 'BOOK NOT FOUND'
                     print name
@@ -90,13 +89,8 @@ class DatabaseEditor:
             if 'dimensions' in row:
                 book.set('dimension', row['dimensions'])
 
-            # TODO: this data is total crap.
-            # if 'originallanguage' in row:
-            #     node = self.findOrCreateNode(row['originallanguage'][0], 'language', graphName)
-            #     node.Knows(book)
-
             if 'fromwhere' in row:
-                node = self.findOrCreateNode(row['fromwhere'], 'purchasedAt', graphName)
+                node = self.find_or_create_node(row['fromwhere'], 'purchasedAt', graph_name)
                 node.Knows(book)
 
             if 'tags' in row:
@@ -105,127 +99,129 @@ class DatabaseEditor:
                     if len(parts) == 2:
                         if parts[0] == 'REFERENCES':
                             isbn = parts[1]
-                            node = self.findByISBN(graphName, isbn)
+                            node = self.find_by_isbn(graph_name, isbn)
                             node.Knows(book)
                         elif parts[0] == 'RECOMMENDER':
-                            node = self.findOrCreateNode(parts[1], 'recommender', graphName)
+                            node = self.find_or_create_node(parts[1], 'recommender', graph_name)
                             node.Knows(book)
                         elif parts[0] == 'TYPE':
-                            node = self.findOrCreateNode(parts[1], 'type', graphName)
+                            node = self.find_or_create_node(parts[1], 'type', graph_name)
                             node.Knows(book)
                     else:
-                        node = self.findOrCreateNode(tag, 'tags', graphName)
+                        node = self.find_or_create_node(tag, 'tags', graph_name)
                         node.Knows(book)
 
-    def addScrapedData(self, graphName):
+    def add_scraped_data(self, graph_name):
         # download libraryThing scraped data
         response = urllib2.urlopen(self.libraryThingScraped)
         data = json.load(response)
 
         # hacky fix for redundant scraped data
-        ignoreFields = ['purchasedAt', 'isbn', 'tags']
+        ignore_fields = ['purchasedAt', 'isbn', 'tags']
 
         for datum in data:
-            if not 'isbn' in datum:
+            if 'isbn' not in datum:
                 continue
             isbn = datum['isbn']
-            book = self.findByISBN(graphName, isbn)
+            book = self.find_by_isbn(graph_name, isbn)
             if not book:
                 print 'BOOK NOT FOUND: %s' % datum
                 continue
 
             for field in datum:
-                if any(field in f for f in ignoreFields) or not len(datum[field]):
+                if any(field in f for f in ignore_fields) or not len(datum[field]):
                     continue
 
                 if isinstance(datum[field], list):
                     for item in datum[field]:
-                        node = self.findOrCreateNode(item, field, graphName)
+                        node = self.find_or_create_node(item, field, graph_name)
                         node.Knows(book)
                 else:
                     if field == 'year':
                         try:
-                            numYear = int(datum['year'])
-                            decade = str(int(math.floor(numYear / 10) * 10))
-                            node = self.findOrCreateNode(decade, 'decade', graphName)
+                            num_year = int(datum['year'])
+                            decade = str(int(math.floor(num_year / 10) * 10))
+                            node = self.find_or_create_node(decade, 'decade', graph_name)
                             node.Knows(book)
                         except:
                             print 'failed to create decade for year %s' % datum['year']
                             pass
-                    node = self.findOrCreateNode(datum[field], field, graphName)
+                    node = self.find_or_create_node(datum[field], field, graph_name)
                     node.Knows(book)
 
-    def createBookGraph(self):
-        graphName = 'booksOnly'
+    def create_book_graph(self):
         weights = {
-                'publisher':    1,
-                'purchasedAt':  2,
-                'series':       3,
-                'year':         3,
-                'decade':       4,
-                'places':       5,
-                'language':     6,
-                'events':       7,
-                'tags':         7,
-                'recommender':  8,
-                'references':   8,
-                'characters':   9,
-                'author':       10,
-                'type':         15
+            'publisher':    1,
+            'purchasedAt':  2,
+            'series':       3,
+            'year':         3,
+            'decade':       4,
+            'places':       5,
+            'language':     6,
+            'events':       7,
+            'tags':         7,
+            'recommender':  8,
+            'references':   8,
+            'characters':   9,
+            'author':       10,
+            'type':         15
         }
 
-        # this seems messy/problematic, but it should work.
-        # leaving it outside a function since it's so specific
-        q = 'MATCH (n:bookData) WHERE n.contentType = "book" CREATE (b:booksOnly {name: n.name, referenceId: id(n), isbn: n.isbn}) RETURN b'
-        allBooks = self.gdb.query(q, returns=Node)._elements
+        q = 'MATCH (n:bookData) WHERE n.contentType = "book" ' \
+            'CREATE (b:booksOnly {name: n.name, referenceId: id(n), isbn: n.isbn}) RETURN b'
+        # TODO: why am I doing this thing? it seems like not a good thing
+        all_books = self.gdb.query(q, returns=Node)._elements
 
-        while len(allBooks):
-            book = allBooks.pop()[0]
+        while len(all_books):
+            book = all_books.pop()[0]
             print 'working on %s' % book.properties['name']
-            print len(allBooks)
-            for relatedBook in allBooks:
-                connections = self.getConnectionNodes(book.properties['referenceId'], relatedBook[0].properties['referenceId'])
+            print len(all_books)
+            for relatedBook in all_books:
+                connections = self.get_connection_nodes(book.properties['referenceId'],
+                                                        relatedBook[0].properties['referenceId'])
                 weight = 0
                 properties = []
                 for connection in connections:
-                    connectionType = connection[0].properties['contentType']
-                    weight += weights[connectionType]
-                    properties.append(connectionType + ':' + connection[0].properties['name'])
+                    connection_type = connection[0].properties['contentType']
+                    weight += weights[connection_type]
+                    properties.append(connection_type + ':' + connection[0].properties['name'])
 
                 if weight > 0:
                     book.knows(relatedBook[0], weight=weight, sharedAttributes=', '.join(properties))
 
-    def minimalSpanningTree(self):
-        booksGraph = 'booksOnly'
-        mstGraph = 'mstBooks'
-        q = 'MATCH (n:%s) SET n.weight = 0, n.available = True, n.mstNodeId = ""' % booksGraph
+    '''
+    Prim's algorithm (more or less)
+    '''
+    def minimal_spanning_tree(self):
+        books_graph = 'booksOnly'
+        mst_graph = 'mstBooks'
+        q = 'MATCH (n:%s) SET n.weight = 0, n.available = True, n.mstNodeId = ""' % books_graph
         self.gdb.query(q)
 
         # start with the True Confessions of Charlotte Doyle, obvi
-        q = 'MATCH (n:%s) WHERE n.isbn = "9780380714759" SET n.weight = 1' % booksGraph
+        q = 'MATCH (n:%s) WHERE n.isbn = "9780380714759" SET n.weight = 1' % books_graph
         self.gdb.query(q)
 
-        areNodesAvailable = True
-        while areNodesAvailable:
-            print 'FINDING available nodes by weight'
-
-            # just picking the first node. Probs not ideal
-            q = 'MATCH (n:%s) WHERE n.weight > 0 AND n.available RETURN n ORDER BY n.weight DESC limit 1' % booksGraph
+        while True:
+            # Find the weightiest available node. just picking the first node. Probs not ideal
+            q = 'MATCH (n:%s) WHERE n.weight > 0 AND n.available RETURN n ORDER BY n.weight DESC limit 1' % books_graph
             nodes = self.gdb.query(q, returns=Node)
 
+            # algorithm is complete when there are no available nodes
             if not len(nodes):
-                areNodesAvailable = False
                 break
 
             node = nodes[0][0]
 
             # find the highest weighed node already in the mst graph
-            connectorNode = None
+            connector_node = None
             weight = 0
-            q = 'MATCH (n:%s) - [r] - b WHERE id(n) = %d AND NOT b.available RETURN b ORDER BY r.weight DESC limit 1' % (booksGraph, node.id)
+            q = 'MATCH (n:%s) - [r] - b ' \
+                'WHERE id(n) = %d AND NOT b.available RETURN b ' \
+                'ORDER BY r.weight DESC limit 1' % (books_graph, node.id)
             connectors = self.gdb.query(q, returns=Node)
 
-            # if there's no connector node, it's HOPEFULLY ok
+            # if there's no connector node, this is the first node in the graph. if not, trouble
             if len(connectors) and len(connectors[0]):
                 q = 'MATCH n - [r] - b WHERE id(n) = %d AND id(b) = %d RETURN r.weight' % (node.id, connectors[0][0].id)
                 weight = self.gdb.query(q)[0][0]
@@ -234,69 +230,54 @@ class DatabaseEditor:
                 # get the equivalent node from the MST graph
                 q = 'MATCH n WHERE id(n) = %d RETURN n' % connectors[0][0].properties['mstNodeId']
                 nodes = self.gdb.query(q, returns=Node)
-                connectorNode = nodes[0][0]
-            else:
-                print 'this had better be node 1'
+                connector_node = nodes[0][0]
 
             print 'CREATING the new MST node'
             # these two nodes will reference each other
             node.set('available', False)
-            mstNode = self.gdb.node(name = node.properties['name'], isbn = node.properties['isbn'], weight = weight)
-            mstNode.labels.add(mstGraph)
-            node.set('mstNodeId', mstNode.id)
+            mst_node = self.gdb.node(name=node.properties['name'], isbn=node.properties['isbn'], weight=weight)
+            mst_node.labels.add(mst_graph)
+            node.set('mstNodeId', mst_node.id)
 
-            if connectorNode:
-                mstNode.nows(connectorNode)
+            if connector_node:
+                mst_node.nows(connector_node)
 
-            print 'REWEIGHTING all remaining nodes'
+            print 'REWEIGHING all remaining nodes'
             q = 'MATCH n - [r] - b WHERE id(n) = %d AND r.weight > b.weight SET b.weight = r.weight' % node.id
             self.gdb.query(q)
 
 
 # --------------------------- queries
 
-    def getConnectionNodes(self, bookId1, bookId2):
-        q = 'MATCH b1 -- n -- b2 WHERE id(b1)=%d AND id(b2)=%d AND NOT n.contentType="book" RETURN distinct n' % (bookId1, bookId2)
+    def get_connection_nodes(self, book_id_1, book_id_2):
+        q = 'MATCH b1 -- n -- b2 ' \
+            'WHERE id(b1) = %d AND id(b2) = %d AND NOT n.contentType = "book" ' \
+            'RETURN distinct n' % (book_id_1, book_id_2)
         nodes = self.gdb.query(q, returns=Node)
         return nodes
 
-    def getNodeById(self, nodeId):
-        q = "MATCH n WHERE id(n)=%d RETURN n" % nodeId
-        nodes = self.gdb.query(q, returns=Node)
-        if not nodes[0] or not nodes[0][0]:
-            return False
-
-        return nodes[0][0]
-
-    def getAvailableNodes(self, graphName):
-        q = 'MATCH (n:%s) WHERE n.weight>0' % graphName
-        q += 'AND n.available RETURN n ORDER BY n.weight DESC'
-        nodes = self.gdb.query(q, returns=Node)
-        return nodes
-
-    def findByName(self, name, contentType, graphName):
-        q = 'MATCH (n:%s) WHERE n.contentType = "%s" AND n.name = "%s" RETURN n' % (graphName, contentType, name)
+    def findByName(self, name, content_type, graph_name):
+        q = 'MATCH (n:%s) WHERE n.contentType = "%s" AND n.name = "%s" RETURN n' % (graph_name, content_type, name)
         nodes = self.gdb.query(q, returns=Node)
         if len(nodes) > 0 and len(nodes[0]) > 0:
             return nodes[0][0]
         return False
 
-    def createNode(self, name, contentType, graphName):
-        print 'creating node %s, type %s, in %s' % (name, contentType, graphName)
-        node = self.gdb.node(name=name, contentType=contentType)
-        node.labels.add(graphName)
+    def create_node(self, name, content_type, graph_name):
+        print 'creating node %s, type %s, in %s' % (name, content_type, graph_name)
+        node = self.gdb.node(name=name, contentType=content_type)
+        node.labels.add(graph_name)
         return node
 
-
-    def findOrCreateNode(self, name, contentType, graphName):
+    def find_or_create_node(self, name, content_type, graph_name):
         name = name.replace('"', '')
-        node = self.findByName(name, contentType, graphName)
+        node = self.findByName(name, content_type, graph_name)
         if not node:
-            node = self.createNode(name, contentType, graphName)
+            node = self.create_node(name, content_type, graph_name)
         return node
 
-    def findByISBN(self, graphName, isbn):
-        q = 'MATCH (n:%s) WHERE n.isbn = "%s" RETURN n' % (graphName, isbn)
+    def find_by_isbn(self, graph_name, isbn):
+        q = 'MATCH (n:%s) WHERE n.isbn = "%s" RETURN n' % (graph_name, isbn)
         nodes = self.gdb.query(q, returns=Node)
 
         if len(nodes) > 0 and len(nodes[0]) > 0:
@@ -304,14 +285,14 @@ class DatabaseEditor:
         else:
             # checks for alternate ISBN format used by LibraryThing
             variant = isbn[0:-1]
-            q = 'MATCH (n:%s) WHERE n.isbn =~ ".*%s.*" RETURN n' % (graphName, variant)
+            q = 'MATCH (n:%s) WHERE n.isbn =~ ".*%s.*" RETURN n' % (graph_name, variant)
             nodes = self.gdb.query(q, returns=Node)
             if len(nodes) > 0 and len(nodes[0]) > 0:
                 return nodes[0][0]
         return False
 
-    def findByTitle(self, title, graphName):
-        q = 'MATCH (b:%s) WHERE b.name =~ "(?i).*%s.*" RETURN b' % (graphName, title)
+    def find_by_title(self, title, graph_name):
+        q = 'MATCH (b:%s) WHERE b.name =~ "(?i).*%s.*" RETURN b' % (graph_name, title)
         nodes = self.gdb.query(q, returns=Node)
         if len(nodes) > 0 and len(nodes[0]) > 0:
             return nodes[0][0]
