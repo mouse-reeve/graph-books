@@ -255,10 +255,18 @@ class DatabaseEditor:
 
     def find_or_create_node(self, name, content_type, graph_name):
         name = name.replace('"', '')
-        node = self.findByName(name, content_type, graph_name)
+        node = self.find_by_name(name, content_type, graph_name)
         if not node:
             node = self.create_node(name, content_type, graph_name)
         return node
+
+    def find_by_name(self, name, contentType, graphName):
+        q = 'MATCH (n:%s) WHERE n.contentType = "%s" ' \
+            'AND n.name = "%s" RETURN n' % (graphName, contentType, name)
+        nodes = self.gdb.query(q, returns=Node)
+        if len(nodes) > 0 and len(nodes[0]) > 0:
+            return nodes[0][0]
+        return False
 
     def find_by_isbn(self, isbn, graph_name):
         q = 'MATCH (n:%s) WHERE n.isbn = "%s" RETURN n' % (graph_name, isbn)
