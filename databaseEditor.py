@@ -174,12 +174,30 @@ class DatabaseEditor:
                     node.Knows(book)
 
     def create_book_graph(self):
+        weights = {
+            'publisher':    1,
+            'purchasedAt':  2,
+            'series':       3,
+            'year':         3,
+            'decade':       4,
+            'places':       5,
+            'language':     6,
+            'events':       7,
+            'tags':         7,
+            'recommender':  8,
+            'references':   8,
+            'characters':   9,
+            'author':       10,
+            'type':         15
+        }
+
         # weight all non-book nodes (currently, sets all weights to 1)
         if not self.suppress_output:
             print 'adding weights to book data graph'
-        q = 'MATCH (n:bookData) WHERE NOT n.contentType = "book" ' \
-            'SET n.weight = 1'
-        self.gdb.query(q)
+        for (weight, field) in enumerate(weights):
+            q = 'MATCH (n:bookData) WHERE n.contentType = "%s" ' \
+                'SET n.weight = %d' % (field, weight)
+            self.gdb.query(q)
 
         if not self.suppress_output:
             print 'creating book nodes'
@@ -191,6 +209,7 @@ class DatabaseEditor:
 
         if not self.suppress_output:
             print 'building relationships'
+
         # create relationships
         q = 'MATCH (n1:bookData) -- r -- n2, (b1:booksOnly), (b2:booksOnly) ' \
             'WHERE n1.contentType = "book" AND NOT r.contentType = "book" ' \
@@ -198,8 +217,8 @@ class DatabaseEditor:
             'WITH n1, COLLECT(r) as rels, SUM(r.weight) as w, b1, b2 ' \
             'CREATE (b1) - [:Knows {weight: w}] -> (b2)'
         self.gdb.query(q)
-
-        # q = 'MATCH (b1:booksOnly), b2 MERGE b1 - [r] - b2'
+        # TODO: this is creating duplicate relationships, and adding a
+        # conditional to only pick nodes with no relationship isn't working
 
     '''
     Prim's algorithm (more or less)
