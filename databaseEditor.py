@@ -5,10 +5,13 @@ import json
 import urllib2
 import math
 
+'''
+updates and modifies the book database
+'''
+
 
 class DatabaseEditor:
 
-    ''' updates and modifies the book database '''
     def __init__(self):
         github_url = 'https://raw.githubusercontent.com/mouse-reeve'
         self.canonical_csv = github_url + \
@@ -20,17 +23,18 @@ class DatabaseEditor:
 
         self.gdb = GraphDatabase("http://localhost:7474/db/data/")
 
-    def create_graphs(self):
-        self.timed_run(self.add_books)
-        self.timed_run(self.create_book_graph)
-        self.timed_run(self.minimal_spanning_tree)
-
-    def timed_run(self, process):
+    @staticmethod
+    def timed_run(process):
         start = datetime.now()
         process()
         end = datetime.now()
         runtime = end - start
         print 'process ran in %d seconds' % runtime.seconds
+
+    def create_graphs(self):
+        self.timed_run(self.add_books)
+        self.timed_run(self.create_book_graph)
+        self.timed_run(self.minimal_spanning_tree)
 
     def add_books(self):
         graph_name = 'bookData'
@@ -220,9 +224,7 @@ class DatabaseEditor:
         # TODO: this is creating duplicate relationships, and adding a
         # conditional to only pick nodes with no relationship isn't working
 
-    '''
-    Prim's algorithm (more or less)
-    '''
+    ''' Prim's algorithm (more or less) '''
     def minimal_spanning_tree(self):
         books_graph = 'booksOnly'
         mst_graph = 'mstBooks'
