@@ -67,7 +67,6 @@ class DatabaseEditor:
 
         for datum in data:
             row = data[datum]
-
             if 'isbn' not in row or 'title' not in row:
                 continue
 
@@ -77,7 +76,6 @@ class DatabaseEditor:
                 continue
 
             name = row['title']
-
             book = self.find_by_isbn(graph_name, isbns[0])
             if not book:
                 book = self.find_by_title(name, graph_name)
@@ -158,53 +156,25 @@ class DatabaseEditor:
                     node.Knows(book)
 
     def create_book_graph(self):
-        weights = {
-            'publisher':    1,
-            'purchasedAt':  2,
-            'series':       3,
-            'year':         3,
-            'decade':       4,
-            'places':       5,
-            'language':     6,
-            'events':       7,
-            'tags':         7,
-            'recommender':  8,
-            'references':   8,
-            'characters':   9,
-            'author':       10,
-            'type':         15
-        }
+        # weight all non-book nodes (currently, sets all weights to 1)
+        q = 'MATCH (n:bookData) WHERE NOT n.contentType = "book" ' \
+            'SET n.weight = 1'
+        self.gdb.query(q)
 
+        # create all book nodes
         q = 'MATCH (n:bookData) WHERE n.contentType = "book" ' \
             'CREATE (b:booksOnly ' \
             '{name: n.name, referenceId: id(n), isbn: n.isbn}) RETURN b'
-        # TODO: why am I doing this thing? it seems like not a good thing
-        all_books = self.gdb.query(q, returns=Node)._elements
+        self.gdb.query(q)
 
-        while len(all_books):
-            book = all_books.pop()[0]
-            print 'working on %s' % book.properties['name']
-            print len(all_books)
-            for relatedBook in all_books:
-                q = 'MATCH b1 -- n -- b2 ' \
-                    'WHERE id(b1) = %d AND id(b2) = %d ' \
-                    'AND NOT n.contentType = "book" ' \
-                    'RETURN distinct n' % \
-                    (book.properties['referenceId'],
-                     relatedBook[0].properties['referenceId'])
-                connections = self.gdb.query(q, returns=Node)
-
-                weight = 0
-                properties = []
-                for connection in connections:
-                    connection_type = connection[0].properties['contentType']
-                    weight += 1  # weights[connection_type]
-                    properties.append(connection_type + ':' +
-                                      connection[0].properties['name'])
-
-                if weight > 0:
-                    book.knows(relatedBook[0], weight=weight,
-                               sharedAttributes=', '.join(properties))
+        # create relationships
+        q = 'MATCH (n1:bookData) -- r -- n2, (b1:booksOnly), (b2:booksOnly) ' \
+            'WHERE n1.contentType = "book" AND NOT r.contentType = "book"' \
+            'AND b1.referenceId = id(n1) AND b2.referenceId = id(n2)' \
+            'AND NOT b1 -- b2' \
+            'WITH n1, COLLECT(r) as rels, SUM(r.weight) as w, b1, b2' \
+            'CREATE (b1)-[:Knows {weight: w}]->(b2)'
+        self.gdb.query(q)
 
     '''
     Prim's algorithm (more or less)
