@@ -1,4 +1,5 @@
 from neo4jrestclient.client import GraphDatabase, Node
+from datetime import datetime
 import csv
 import json
 import urllib2
@@ -15,7 +16,21 @@ class DatabaseEditor:
         self.lt_json = github_url + '/book-catalogue/master/librarything.json'
         self.lt_scraped = github_url + '/book-scraper/master/items.json'
 
+        self.suppress_output = False
+
         self.gdb = GraphDatabase("http://localhost:7474/db/data/")
+
+    def create_graphs(self):
+        self.timed_run(self.add_books)
+        self.timed_run(self.create_book_graph)
+        self.timed_run(self.minimal_spanning_tree)
+
+    def timed_run(self, process):
+        start = datetime.now()
+        process()
+        end = datetime.now()
+        runtime = end - start
+        print 'process ran in %d seconds' % runtime.seconds
 
     def add_books(self):
         graph_name = 'bookData'
@@ -80,8 +95,9 @@ class DatabaseEditor:
             if not book:
                 book = self.find_by_title(name, graph_name)
                 if not book:
-                    print 'BOOK NOT FOUND'
-                    print name
+                    if not self.suppress_output:
+                        print 'BOOK NOT FOUND'
+                        print name
                     continue
 
             if 'weight' in row:
@@ -127,7 +143,8 @@ class DatabaseEditor:
             isbn = datum['isbn']
             book = self.find_by_isbn(isbn, graph_name)
             if not book:
-                print 'BOOK NOT FOUND: %s' % datum
+                if not self.suppress_output:
+                    print 'BOOK NOT FOUND: %s' % datum
                 continue
 
             for field in datum:
@@ -148,8 +165,9 @@ class DatabaseEditor:
                                                             graph_name)
                             node.Knows(book)
                         except:
-                            print 'failed to create decade for year %s' % \
-                                  datum['year']
+                            if not self.suppress_output:
+                                print 'failed to create decade for year %s' % \
+                                      datum['year']
                             pass
                     node = self.find_or_create_node(datum[field], field,
                                                     graph_name)
@@ -157,26 +175,31 @@ class DatabaseEditor:
 
     def create_book_graph(self):
         # weight all non-book nodes (currently, sets all weights to 1)
-        print 'adding weights to book data graph'
+        if not self.suppress_output:
+            print 'adding weights to book data graph'
         q = 'MATCH (n:bookData) WHERE NOT n.contentType = "book" ' \
             'SET n.weight = 1'
         self.gdb.query(q)
 
-        print 'creating book nodes'
+        if not self.suppress_output:
+            print 'creating book nodes'
         # create all book nodes
         q = 'MATCH (n:bookData) WHERE n.contentType = "book" ' \
             'CREATE (b:booksOnly ' \
             '{name: n.name, referenceId: id(n), isbn: n.isbn})'
         self.gdb.query(q)
 
-        print 'building relationships'
+        if not self.suppress_output:
+            print 'building relationships'
         # create relationships
         q = 'MATCH (n1:bookData) -- r -- n2, (b1:booksOnly), (b2:booksOnly) ' \
             'WHERE n1.contentType = "book" AND NOT r.contentType = "book" ' \
             'AND b1.referenceId = id(n1) AND b2.referenceId = id(n2) ' \
             'WITH n1, COLLECT(r) as rels, SUM(r.weight) as w, b1, b2 ' \
-            'CREATE (b1)-[:Knows {weight: w}]->(b2)'
+            'CREATE (b1) - [:Knows {weight: w}] -> (b2)'
         self.gdb.query(q)
+
+        # q = 'MATCH (b1:booksOnly), b2 MERGE b1 - [r] - b2'
 
     '''
     Prim's algorithm (more or less)
@@ -226,8 +249,9 @@ class DatabaseEditor:
                 nodes = self.gdb.query(q, returns=Node)
                 connector_node = nodes[0][0]
 
-                print '%s -> %s' % (connector_node.properties['name'],
-                                    node.properties['name'])
+                if not self.suppress_output:
+                    print '%s -> %s' % (connector_node.properties['name'],
+                                        node.properties['name'])
 
             # these two nodes will reference each other
             node.set('available', False)
@@ -249,8 +273,9 @@ class DatabaseEditor:
     # queries
 
     def create_node(self, name, content_type, graph_name):
-        print 'creating node %s, type %s, in %s' % \
-              (name, content_type, graph_name)
+        if not self.suppress_output:
+            print 'creating node %s, type %s, in %s' % \
+                  (name, content_type, graph_name)
         node = self.gdb.node(name=name, contentType=content_type)
         node.labels.add(graph_name)
         return node
