@@ -76,7 +76,7 @@ class DatabaseEditor:
                 continue
 
             name = row['title']
-            book = self.find_by_isbn(graph_name, isbns[0])
+            book = self.find_by_isbn(isbns[0], graph_name)
             if not book:
                 book = self.find_by_title(name, graph_name)
                 if not book:
@@ -157,22 +157,24 @@ class DatabaseEditor:
 
     def create_book_graph(self):
         # weight all non-book nodes (currently, sets all weights to 1)
+        print 'adding weights to book data graph'
         q = 'MATCH (n:bookData) WHERE NOT n.contentType = "book" ' \
             'SET n.weight = 1'
         self.gdb.query(q)
 
+        print 'creating book nodes'
         # create all book nodes
         q = 'MATCH (n:bookData) WHERE n.contentType = "book" ' \
             'CREATE (b:booksOnly ' \
-            '{name: n.name, referenceId: id(n), isbn: n.isbn}) RETURN b'
+            '{name: n.name, referenceId: id(n), isbn: n.isbn})'
         self.gdb.query(q)
 
+        print 'building relationships'
         # create relationships
         q = 'MATCH (n1:bookData) -- r -- n2, (b1:booksOnly), (b2:booksOnly) ' \
-            'WHERE n1.contentType = "book" AND NOT r.contentType = "book"' \
-            'AND b1.referenceId = id(n1) AND b2.referenceId = id(n2)' \
-            'AND NOT b1 -- b2' \
-            'WITH n1, COLLECT(r) as rels, SUM(r.weight) as w, b1, b2' \
+            'WHERE n1.contentType = "book" AND NOT r.contentType = "book" ' \
+            'AND b1.referenceId = id(n1) AND b2.referenceId = id(n2) ' \
+            'WITH n1, COLLECT(r) as rels, SUM(r.weight) as w, b1, b2 ' \
             'CREATE (b1)-[:Knows {weight: w}]->(b2)'
         self.gdb.query(q)
 
