@@ -5,13 +5,10 @@ import json
 import urllib2
 import math
 
-'''
-updates and modifies the book database
-'''
-
 
 class DatabaseEditor:
 
+    ''' updates and modifies the book database '''
     def __init__(self):
         github_url = 'https://raw.githubusercontent.com/mouse-reeve'
         self.canonical_csv = github_url + \
@@ -23,18 +20,17 @@ class DatabaseEditor:
 
         self.gdb = GraphDatabase("http://localhost:7474/db/data/")
 
-    @staticmethod
-    def timed_run(process):
+    def create_graphs(self):
+        self.timed_run(self.add_books)
+        self.timed_run(self.create_book_graph)
+        self.timed_run(self.minimal_spanning_tree)
+
+    def timed_run(self, process):
         start = datetime.now()
         process()
         end = datetime.now()
         runtime = end - start
         print 'process ran in %d seconds' % runtime.seconds
-
-    def create_graphs(self):
-        self.timed_run(self.add_books)
-        self.timed_run(self.create_book_graph)
-        self.timed_run(self.minimal_spanning_tree)
 
     def add_books(self):
         graph_name = 'bookData'
@@ -224,7 +220,9 @@ class DatabaseEditor:
         # TODO: this is creating duplicate relationships, and adding a
         # conditional to only pick nodes with no relationship isn't working
 
-    ''' Prim's algorithm (more or less) '''
+    '''
+    Prim's algorithm (more or less)
+    '''
     def minimal_spanning_tree(self):
         books_graph = 'booksOnly'
         mst_graph = 'mstBooks'
@@ -283,13 +281,46 @@ class DatabaseEditor:
             node.set('mstNodeId', mst_node.id)
 
             if connector_node:
-                mst_node.nows(connector_node)
+                connector_node.Knows(mst_node)
 
             # re-weight all the nodes
             q = 'MATCH n - [r] - b ' \
                 'WHERE id(n) = %d AND r.weight > b.weight ' \
                 'SET b.weight = r.weight' % node.id
             self.gdb.query(q)
+
+    def depth_first_search(self):
+        # select the start node from the tree
+        q = 'MATCH (n:mstBooks) RETURN n LIMIT 1'
+        node = self.gdb.query(q, returns=Node)[0][0]
+
+        self.add_dfs_node(node)
+
+    def add_dfs_node(self, mst_node, dfs_parent_node=None):
+        graph_name = 'bookList'
+        if not self.suppress_output:
+            print mst_node.properties['name']
+
+        # add the new node
+        dfs_node = self.gdb.node(name=mst_node.properties['name'],
+                                 isbn=mst_node.properties['isbn'])
+        dfs_node.labels.add(graph_name)
+
+        # connect it to its parent
+        if dfs_parent_node:
+            dfs_parent_node.Knows(dfs_node)
+
+        # get the children
+        q = 'MATCH n1 --> n2 WHERE id(n1) = %d ' \
+            'RETURN n2 ORDER BY n2.weight DESC' % mst_node.id
+        children = self.gdb.query(q, returns=Node)
+
+        if len(children) > 0:
+            # recursively call this method for each child
+            for child in children:
+                dfs_node = self.add_dfs_node(child[0], dfs_node)
+
+        return dfs_node
 
     # queries
 
