@@ -322,6 +322,47 @@ class DatabaseEditor:
 
         return dfs_node
 
+    def book_list_by_most_related(self):
+        # this is a terrible name.
+        graph_name = 'bookList2'
+
+        q = 'MATCH (n:booksOnly) SET n.weight = 0, n.available = True'
+        self.gdb.query(q)
+
+        # find the strongest relationship
+        q = 'MATCH (n:booksOnly) - [r] - () RETURN n ' \
+            'ORDER BY r.weight DESC LIMIT 1'
+        start_node = self.gdb.query(q, returns=Node)[0][0]
+
+        previous_book = None
+
+        while True:
+            print 'adding node %s' % start_node.properties['name']
+            book = self.gdb.node(name=start_node.properties['name'],
+                                 isbn=start_node.properties['isbn'])
+            book.labels.add(graph_name)
+
+            if previous_book:
+                previous_book.Knows(book)
+
+            start_node.set('available', False)
+
+            # add the weight of rel btwn the new node and any node to that node
+            q = 'MATCH (b:booksOnly) - [r] - n WHERE id(b) = %d ' \
+                'SET n.weight = n.weight + r.weight' % start_node.id
+            self.gdb.query(q)
+
+            # find the highest weighted node
+            q = 'MATCH (n:booksOnly) WHERE n.available ' \
+                'RETURN n ORDER BY n.weight DESC LIMIT 1'
+            nodes = self.gdb.query(q, returns=Node)
+
+            if not len(nodes):
+                break
+
+            start_node = nodes[0][0]
+            previous_book = book
+
     # queries
 
     def create_node(self, name, content_type, graph_name):
