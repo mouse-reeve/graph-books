@@ -117,20 +117,14 @@ class DatabaseEditor:
                         if parts[0] == 'REFERENCES':
                             isbn = parts[1]
                             node = self.find_by_isbn(isbn, graph_name)
-                            node.Knows(book)
-                        elif parts[0] == 'RECOMMENDER':
+                        else:
                             node = self.find_or_create_node(parts[1],
-                                                            'recommender',
+                                                            parts[0].lower(),
                                                             graph_name)
-                            node.Knows(book)
-                        elif parts[0] == 'TYPE':
-                            node = self.find_or_create_node(parts[1],
-                                                            'type', graph_name)
-                            node.Knows(book)
                     else:
                         node = self.find_or_create_node(tag, 'tags',
                                                         graph_name)
-                        node.Knows(book)
+                    node.Knows(book)
 
     def add_scraped_data(self, graph_name):
         # download libraryThing scraped data
@@ -184,11 +178,13 @@ class DatabaseEditor:
             'language':     6,
             'events':       7,
             'tags':         7,
+            'type':         7,
+            'readability':  7,
             'recommender':  8,
             'references':   8,
             'characters':   9,
             'author':       10,
-            'type':         15
+            'mood':         12
         }
 
         # weight all non-book nodes (currently, sets all weights to 1)
@@ -321,47 +317,6 @@ class DatabaseEditor:
                 dfs_node = self.add_dfs_node(child[0], dfs_node)
 
         return dfs_node
-
-    def book_list_by_most_related(self):
-        # this is a terrible name.
-        graph_name = 'bookList2'
-
-        q = 'MATCH (n:booksOnly) SET n.weight = 0, n.available = True'
-        self.gdb.query(q)
-
-        # find the strongest relationship
-        q = 'MATCH (n:booksOnly) - [r] - () RETURN n ' \
-            'ORDER BY r.weight DESC LIMIT 1'
-        start_node = self.gdb.query(q, returns=Node)[0][0]
-
-        previous_book = None
-
-        while True:
-            print 'adding node %s' % start_node.properties['name']
-            book = self.gdb.node(name=start_node.properties['name'],
-                                 isbn=start_node.properties['isbn'])
-            book.labels.add(graph_name)
-
-            if previous_book:
-                previous_book.Knows(book)
-
-            start_node.set('available', False)
-
-            # add the weight of rel btwn the new node and any node to that node
-            q = 'MATCH (b:booksOnly) - [r] - n WHERE id(b) = %d ' \
-                'SET n.weight = n.weight + r.weight' % start_node.id
-            self.gdb.query(q)
-
-            # find the highest weighted node
-            q = 'MATCH (n:booksOnly) WHERE n.available ' \
-                'RETURN n ORDER BY n.weight DESC LIMIT 1'
-            nodes = self.gdb.query(q, returns=Node)
-
-            if not len(nodes):
-                break
-
-            start_node = nodes[0][0]
-            previous_book = book
 
     # queries
 
