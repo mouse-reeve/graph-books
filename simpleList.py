@@ -31,10 +31,9 @@ class SimpleList:
 
             start_node.set('available', False)
 
-            # add the weight of rel btwn the new node and any node to that node
+            # set the weight of connected nodes
             q = 'MATCH (b:%s) - [r] - n WHERE id(b) = %d ' \
-                'SET n.weight = n.weight + r.weight' % (input_graph,
-                                                        start_node.id)
+                'SET n.weight = r.weight' % (input_graph, start_node.id)
             self.gdb.query(q)
 
             # find the highest weighted node
