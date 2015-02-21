@@ -27,8 +27,9 @@ class DatabaseEditor:
         self.prims.minimum_spanning_tree('booksOnly', 'mstBooks')
         self.dfs.depth_first_search('mstBooks', 'dfsBookList')
 
-    def simple_list(self):
-        self.simpleList.simple_list('booksOnly', 'simpleBookList')
+    def simple_list(self, filename=None):
+        # TODO: these aren't timed
+        self.simpleList.simple_list('booksOnly', 'simpleBookList', filename)
 
     def timed_run(self, process):
         start = datetime.now()

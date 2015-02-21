@@ -17,7 +17,7 @@ class CreateGraphs:
         self.lt_json = github_url + '/book-catalogue/master/librarything.json'
         self.lt_scraped = github_url + '/book-scraper/master/items.json'
 
-        self.suppress_output = False
+        self.suppress_output = True
 
         self.utils = utilities.Utilities()
 
@@ -170,10 +170,10 @@ class CreateGraphs:
             'decade':       4,
             'places':       5,
             'language':     6,
+            'readability':  6,
             'events':       7,
             'tags':         7,
             'type':         7,
-            'readability':  7,
             'recommender':  8,
             'references':   8,
             'characters':   9,
@@ -184,7 +184,8 @@ class CreateGraphs:
         # weight all non-book nodes (currently, sets all weights to 1)
         if not self.suppress_output:
             print 'adding weights to book data graph'
-        for (weight, field) in enumerate(weights):
+        for field in weights:
+            weight = weights[field]
             q = 'MATCH (n:bookData) WHERE n.contentType = "%s" ' \
                 'SET n.weight = %d' % (field, weight)
             self.gdb.query(q)

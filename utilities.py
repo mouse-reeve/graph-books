@@ -4,7 +4,7 @@ from neo4jrestclient.client import GraphDatabase, Node
 class Utilities:
 
     def __init__(self):
-        self.suppress_output = False
+        self.suppress_output = True
 
         self.gdb = GraphDatabase("http://localhost:7474/db/data/")
 
