@@ -11,8 +11,8 @@ class CreateGraphs:
 
     ''' Create the Databases '''
     def __init__(self):
-        github_url = 'https://raw.githubusercontent.com/mouse-reeve'
-        self.merged_book_data = github_url + '/book-catalogue/master/merged-data.json'
+        #github_url = 'https://raw.githubusercontent.com/mouse-reeve'
+        #self.merged_book_data = github_url + '/book-catalogue/master/merged-data.json'
 
         self.suppress_output = True
 
@@ -24,8 +24,10 @@ class CreateGraphs:
         graph_name = 'bookData'
 
         # download libraryThing json export
-        response = urllib2.urlopen(self.merged_book_data)
-        data = json.load(response)
+        #response = urllib2.urlopen(self.merged_book_data)
+        data = None
+        with open("../book-catalogue/merged-data.json") as json_file:
+            data = json.load(json_file)
 
         for datum in data:
             row = datum
@@ -48,22 +50,20 @@ class CreateGraphs:
 
     def create_book_graph(self):
         weights = {
-            'publisher':    1,
-            'purchasedAt':  2,
-            'series':       3,
-            'year':         3,
-            'decade':       4,
-            'places':       5,
-            'language':     6,
-            'readability':  6,
-            'events':       7,
-            'tags':         7,
-            'type':         7,
-            'recommender':  8,
-            'references':   8,
-            'characters':   9,
-            'author':       10,
-            'mood':         12
+            'authors':          1,
+            'publisher':        1,
+            'fromwhere':        2,
+            'type':             3,
+            'originallanguage': 4,
+            'places':           6,
+            'language':         6,
+            'readability':      6,
+            'events':           7,
+            'series':           7,
+            'recommender':      8,
+            'tags':             9,
+            'characters':       10,
+            'mood':             15
         }
 
         # weight all non-book nodes (currently, sets all weights to 1)
