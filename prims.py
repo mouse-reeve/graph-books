@@ -1,18 +1,16 @@
+''' implementation of Prim's algorithm '''
 from neo4jrestclient.client import GraphDatabase, Node
 
-
-class Prims:
-
+class Prims(object):
     ''' updates and modifies the book database '''
+
     def __init__(self):
         self.suppress_output = False
 
         self.gdb = GraphDatabase("http://localhost:7474/db/data/")
 
-    '''
-    Prim's algorithm (more or less)
-    '''
     def minimum_spanning_tree(self, input_graph, output_graph):
+        ''' Prim's algorithm (more or less) '''
         q = 'MATCH (n:%s) SET n.weight = 0, n.available = True, ' \
             'n.mstNodeId = ""' % input_graph
         self.gdb.query(q)

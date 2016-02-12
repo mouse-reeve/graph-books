@@ -1,15 +1,15 @@
+''' implementation of depth-frst serarch algo '''
 from neo4jrestclient.client import GraphDatabase, Node
 
-
-class DepthFirstSearch:
-
+class DepthFirstSearch(object):
     ''' updates and modifies the book database '''
+
     def __init__(self):
         self.suppress_output = False
-
         self.gdb = GraphDatabase("http://localhost:7474/db/data/")
 
     def depth_first_search(self, input_graph, output_graph):
+        ''' begin search '''
         # select the start node from the tree
         q = 'MATCH (n:%s) RETURN n LIMIT 1' % input_graph
         node = self.gdb.query(q, returns=Node)[0][0]
@@ -17,6 +17,7 @@ class DepthFirstSearch:
         self.add_dfs_node(node, output_graph)
 
     def add_dfs_node(self, mst_node, output_graph, dfs_parent_node=None):
+        ''' recursively traverse graph '''
         if not self.suppress_output:
             print mst_node.properties['name']
 

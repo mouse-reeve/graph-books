@@ -1,15 +1,16 @@
+''' Produce a list of books from the books-only graph '''
 from neo4jrestclient.client import GraphDatabase, Node
 
-
-class SimpleList:
-
+class SimpleList(object):
     ''' updates and modifies the book database '''
+
     def __init__(self):
         self.suppress_output = True
 
         self.gdb = GraphDatabase("http://localhost:7474/db/data/")
 
     def simple_list(self, input_graph, output_graph, output_filename=None):
+        ''' run the algorithm '''
         output_file = None
         if output_filename:
             output_file = open(output_filename, 'w')

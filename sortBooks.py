@@ -1,3 +1,4 @@
+''' run simple booklist sorting algorithm '''
 from databaseEditor import DatabaseEditor
 import sys
 

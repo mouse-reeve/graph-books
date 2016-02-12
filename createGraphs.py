@@ -1,15 +1,13 @@
-from neo4jrestclient.client import GraphDatabase
-import csv
-import json
-import urllib2
-import math
+''' builds a graph based on the input data '''
 
+from neo4jrestclient.client import GraphDatabase
+import json
+#import urllib2
 import utilities
 
-
-class CreateGraphs:
-
+class CreateGraphs(object):
     ''' Create the Databases '''
+
     def __init__(self):
         #github_url = 'https://raw.githubusercontent.com/mouse-reeve'
         #self.merged_book_data = github_url + '/book-catalogue/master/merged-data.json'
@@ -21,10 +19,10 @@ class CreateGraphs:
         self.gdb = GraphDatabase("http://localhost:7474/db/data/")
 
     def add_books(self):
+        ''' enter all books and related data '''
         graph_name = 'bookData'
 
-        # download libraryThing json export
-        #response = urllib2.urlopen(self.merged_book_data)
+        # for response = urllib2.urlopen(self.merged_book_data)
         data = None
         with open("../book-catalogue/merged-data.json") as json_file:
             data = json.load(json_file)
@@ -49,6 +47,7 @@ class CreateGraphs:
 
 
     def create_book_graph(self):
+        ''' give more value to certain connections '''
         weights = {
             'authors':          1,
             'publisher':        1,
