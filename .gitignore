@@ -5,3 +5,4 @@ lib/
 .Python
 *.pyc
 .DS_Store
+pip-selfcheck.json
