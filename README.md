@@ -1,8 +1,6 @@
 graph-books
 ===========
 
-A graph representation of my library.
+A graph representation of the books I own.
 
-The `bookData` graph stores a node for each book (identified by isbn number), and a linked node for each piece of information about that book. 
-
-`booksOnly` contains only the book nodes, and weights the relationships between any two books as the sum of the weighted values of all the non-book nodes that those two book nodes share in the `bookData` graph.
+The graph includes each book and piece of metadata about that book (such as author, date published, character, series, et cetera), and weighted connections between each book based on their shared characteristics.
